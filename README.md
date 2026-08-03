@@ -401,11 +401,9 @@ bazel run //demo:dev                 # http://127.0.0.1:5191
 bazel build //:release               # bazel-bin/release.tar → agentos-search/
 ```
 
-Large guest builds use (see `.bazelrc`):
-
-```text
-startup --output_user_root=/mnt/workspace/search-experience-bazel
-```
+Bazel’s user root (action cache, install, outputs) lives under **`./bazel-cache`**
+in the repo (see `.bazelrc`). It is gitignored by `/bazel-*`. Run Bazel from the
+workspace root so that path resolves next to `MODULE.bazel`.
 
 ---
 

@@ -19,5 +19,9 @@ common --host_copt=-w
 build --copt=-fno-sanitize=undefined --host_copt=-fno-sanitize=undefined
 build --linkopt=-fno-sanitize=undefined --host_linkopt=-fno-sanitize=undefined
 
-# Shared output root keeps large guest builds off small home partitions
-startup --output_user_root=/mnt/workspace/search-experience-bazel
+# Keep Bazel’s user root inside the repo (gitignored via /bazel-*).
+# Run bazel from the workspace root so this path resolves next to MODULE.bazel.
+# Bazel 8 forbids the default repo-contents cache under the workspace when the
+# user root lives there; disable it (external repos still cache under bazel-cache).
+startup --output_user_root=./bazel-cache
+common --repo_contents_cache=
