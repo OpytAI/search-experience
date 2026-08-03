@@ -1,0 +1,49 @@
+load("@agent-os//bazel:mc_program.bzl", "mc_service_layer")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+package(default_visibility = ["//visibility:public"])
+
+# search-atlas — product guest image (plane B only).
+#
+# Stock AgentOS `atlas` = loom (posix + /bin/luau) + /svc/sqlite. This product does
+# NOT ship Luau as a production authority path (serviceCall-only; /svc/searchd is the
+# sole policy owner).
+#
+# Composition:
+#   base           — @agent-os public: /bin/sh, pkgfsd, /svc/tools, adapters, git
+#                    (no coreutils; production search does not shell out)
+#   sqlite_layer   — product-local mc_service_layer over public @agent-os sqlite
+#                    (atlas_layer itself is package-private in agent-os)
+#   searchd_layer  — /svc/searchd (this product)
+#   product_dirs   — /var/searchd for dual-DB + state
+
+pkg_tar(
+    name = "product_dirs",
+    create_parents = False,
+    empty_dirs = [
+        "var/searchd",
+    ],
+    modes = {
+        "var/searchd": "0755",
+    },
+    owner = "0.0",
+)
+
+# Same shape as agent-os :atlas_layer, built here because that target is not public.
+mc_service_layer(
+    name = "sqlite_layer",
+    lazy = ["@agent-os//memcontainers/programs/sqlite/glue:sqlite"],
+)
+
+pkg_tar(
+    name = "search_atlas",
+    create_parents = False,
+    extension = "tar",
+    owner = "0.0",
+    deps = [
+        ":product_dirs",
+        ":sqlite_layer",
+        "@agent-os//memcontainers/images:base",
+        "//guest/searchd:searchd_layer",
+    ],
+)

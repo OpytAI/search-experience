@@ -1,0 +1,77 @@
+{
+  "name": "searchd",
+  "version": 1,
+  "service": "searchd",
+  "description": "Product-local resident search authority: crawl plan, schema, journals, FTS5/VANN, fusion, generations.",
+  "transport": {
+    "preferred": "vm.serviceCall(\"searchd\", requestBytes)",
+    "interim": "guest Luau authority at /opt/searchd/main.luau with identical JSON envelope"
+  },
+  "paths": {
+    "activeIndex": "/var/searchd/index.db",
+    "candidateIndex": "/var/searchd/candidate.db",
+    "state": "/var/searchd/state.json"
+  },
+  "ops": {
+    "configure": {
+      "request": {
+        "v": 1,
+        "op": "configure",
+        "id": "string",
+        "config": {
+          "collections": "BrowserCrawlDefinition[]",
+          "schemaSql": "string",
+          "modelFingerprint": "string",
+          "compatibilityKey": "string",
+          "pageOrigin": "string",
+          "refreshAfterMs": "number?",
+          "indexPath": "string?",
+          "resume": "boolean? — when true and compatibilityKey matches a lexical-ready guest, keep index/queues (warm restore)"
+        }
+      }
+    },
+    "status": { "request": { "v": 1, "op": "status", "id": "string" } },
+    "crawl_step": {
+      "request": { "v": 1, "op": "crawl_step", "id": "string", "maxFetches": "number?" },
+      "notes": "Guest owns queue/robots/fingerprints; calls host.org.main.search.fetch and .extract. Writes active or candidate DB based on writeCandidate."
+    },
+    "embed_step": {
+      "request": { "v": 1, "op": "embed_step", "id": "string", "maxChunks": "number?" },
+      "notes": "Guest batches document texts through host.org.main.search.embed.batch; inserts VANN vectors into active index only"
+    },
+    "query": {
+      "request": {
+        "v": 1,
+        "op": "query",
+        "id": "string",
+        "collectionId": "string",
+        "query": "string",
+        "limit": "number?",
+        "queryVector": "number[]? — optional; guest embeds via host tool when semanticReady",
+        "candidateLimit": "number?",
+        "perPageLimit": "number?",
+        "rrfK": "number?"
+      },
+      "notes": "Always reads /var/searchd/index.db (active generation)"
+    },
+    "refresh": {
+      "request": { "v": 1, "op": "refresh", "id": "string" },
+      "notes": "Start candidate generation: wipe and rebuild /var/searchd/candidate.db; active index keeps serving queries"
+    },
+    "checkpoint": { "request": { "v": 1, "op": "checkpoint", "id": "string", "kind": "lexical|semantic|idle?" } },
+    "promote": {
+      "request": { "v": 1, "op": "promote", "id": "string", "generationId": "string" },
+      "notes": "Optional explicit promote; crawl_step also auto-promotes a validated candidate (pages≥1, chunks≥1, not truncated)"
+    },
+    "cancel": { "request": { "v": 1, "op": "cancel", "id": "string", "targetId": "string?" } }
+  },
+  "hostTools": {
+    "host.org.main.search.fetch": { "input": { "url": "string", "maxBytes": "number?", "timeoutMs": "number?", "userAgent": "string? — ignored by visitor host; fixed AgentOSSearch/1.0" } },
+    "host.org.main.search.extract": { "input": { "url": "string", "html": "string" } },
+    "host.org.main.search.embed.batch": { "input": { "texts": "string[]", "kind": "document|query?" } }
+  },
+  "response": {
+    "ok": { "v": 1, "id": "string", "ok": true, "op": "string", "status": "SearchdStatusBody?", "progress": "object?", "hits": "SearchdHit[]?" },
+    "err": { "v": 1, "id": "string", "ok": false, "code": "string", "error": "string" }
+  }
+}

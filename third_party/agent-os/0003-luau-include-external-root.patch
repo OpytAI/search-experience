@@ -1,0 +1,20 @@
+--- a/memcontainers/programs/luau/glue/BUILD.bazel	2026-08-03 20:31:41.646277713 +0200
++++ b/memcontainers/programs/luau/glue/BUILD.bazel	2026-08-03 20:31:41.671955649 +0200
+@@ -105,7 +105,7 @@
+         # Force Luau's public C API to extern "C" so the Zig entry's C-mode @cImport links it (else
+         # the API is C++-mangled, resolves to `env` imports, and the VM is dead-stripped).
+         "-include",
+-        "memcontainers/programs/luau/glue/force_extern_c.h",
++        "force_extern_c.h",
+         "-fno-exceptions",
+         "-fno-rtti",
+     ],
+@@ -185,7 +185,7 @@
+     copts = [
+         # Force-include the analysis EH shim into every TU (mc_analysis_abort + try/catch neutralize).
+         "-include",
+-        "memcontainers/programs/luau/glue/analysis_eh_shim.h",
++        "analysis_eh_shim.h",
+         "-fno-exceptions",
+         "-fno-rtti",
+     ],

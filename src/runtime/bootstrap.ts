@@ -1,10 +1,8 @@
 import type { McSiteSearch } from "../elements/mc-site-search.js";
-import { makeCrawlCollection, SearchWorkerClient } from "./client.js";
-import {
-  SEARCH_PROTOCOL_VERSION,
-  type BrowserCrawlDefinition,
-  type SearchExperienceManifest,
-} from "./protocol.js";
+import type { BrowserCrawlDefinition } from "../protocol/collections.js";
+import { validateManifest, type SearchExperienceManifest } from "../protocol/manifest.js";
+import { SEARCH_PROTOCOL_VERSION } from "../protocol/versions.js";
+import { SearchWorkerClient } from "./client.js";
 
 export interface SearchExperienceOptions {
   assetBase?: string | URL;
@@ -12,6 +10,7 @@ export interface SearchExperienceOptions {
   autoMount?: boolean;
   collections?: readonly BrowserCrawlDefinition[];
   refreshAfterMs?: number;
+  showLauncher?: boolean;
 }
 
 export interface SearchExperience {
@@ -19,29 +18,10 @@ export interface SearchExperience {
   manifest: SearchExperienceManifest;
   registration: ServiceWorkerRegistration | null;
   runtime: Worker;
+  client: SearchWorkerClient;
 }
 
-function validateManifest(value: unknown): SearchExperienceManifest {
-  if (!value || typeof value !== "object") throw new Error("search manifest must be an object");
-  const manifest = value as Partial<SearchExperienceManifest>;
-  if (manifest.schema !== 1 || manifest.protocol !== SEARCH_PROTOCOL_VERSION) {
-    throw new Error("unsupported AgentOS search manifest/protocol");
-  }
-  if (
-    !manifest.assets?.worker?.url ||
-    !manifest.assets?.runtime?.url ||
-    !manifest.assets?.kernel?.url ||
-    !manifest.assets?.image?.url ||
-    !manifest.assets?.schema?.url ||
-    !manifest.assets?.embedder?.url
-  ) {
-    throw new Error("search manifest is missing required runtime assets");
-  }
-  if (!Array.isArray(manifest.collections)) throw new Error("search manifest collections must be an array");
-  return manifest as SearchExperienceManifest;
-}
-
-function crawlDefinitions(options: SearchExperienceOptions): readonly BrowserCrawlDefinition[] {
+function crawlDefinitions(options: SearchExperienceOptions): BrowserCrawlDefinition[] {
   const configured = options.collections ?? [{
     id: "site",
     label: (typeof document !== "undefined" && document.title.trim()) ||
@@ -52,6 +32,7 @@ function crawlDefinitions(options: SearchExperienceOptions): readonly BrowserCra
     limit: 10,
     minQueryLength: 1,
     placeholder: "Search this site",
+    maxPages: 50,
   }];
   return configured.map((definition) => ({
     ...definition,
@@ -60,15 +41,19 @@ function crawlDefinitions(options: SearchExperienceOptions): readonly BrowserCra
     ),
     origins: definition.origins?.map((origin) =>
       typeof location !== "undefined" ? new URL(origin, location.href).origin : origin
-    ),
+    ) ?? (typeof location !== "undefined" ? [location.origin] : undefined),
   }));
 }
 
-function mountElement(autoMount: boolean): McSiteSearch {
+function mountElement(autoMount: boolean, showLauncher?: boolean): McSiteSearch {
   const existing = document.querySelector<McSiteSearch>("mc-site-search");
-  if (existing) return existing;
+  if (existing) {
+    if (showLauncher !== undefined) existing.showLauncher = showLauncher;
+    return existing;
+  }
   if (!autoMount) throw new Error("no <mc-site-search> element is present");
   const element = document.createElement("mc-site-search") as McSiteSearch;
+  if (showLauncher !== undefined) element.showLauncher = showLauncher;
   document.body.append(element);
   return element;
 }
@@ -80,7 +65,7 @@ export async function bootstrapSearchExperience(
     throw new Error("AgentOS site search requires a browser document");
   }
 
-  const element = mountElement(options.autoMount !== false);
+  const element = mountElement(options.autoMount !== false, options.showLauncher);
   const assetBase = new URL(options.assetBase ?? "./", import.meta.url);
   const manifestUrl = new URL(options.manifestUrl ?? "agentos-search.manifest.json", assetBase);
   const manifestResponse = await fetch(manifestUrl, { cache: "no-cache" });
@@ -94,13 +79,15 @@ export async function bootstrapSearchExperience(
     const workerUrl = new URL(manifest.assets.worker.url, manifestUrl);
     workerUrl.searchParams.set("sha256", manifest.assets.worker.sha256);
     const workerScope = new URL("./", workerUrl);
-    registration = await navigator.serviceWorker.register(workerUrl, {
-      type: "module",
-      scope: workerScope.href,
-      updateViaCache: "none",
-    });
-  } else {
-    element.statusMessage = "Service workers unavailable; search will not persist offline.";
+    try {
+      registration = await navigator.serviceWorker.register(workerUrl, {
+        type: "module",
+        scope: workerScope.href,
+        updateViaCache: "none",
+      });
+    } catch {
+      element.statusMessage = "Service worker registration failed; online search still works.";
+    }
   }
 
   const runtimeUrl = new URL(manifest.assets.runtime.url, manifestUrl);
@@ -111,24 +98,40 @@ export async function bootstrapSearchExperience(
 
   client.onMessage((message) => {
     if (message.type === "status") {
-      element.statusMessage = message.message ?? message.phase;
       element.phase = message.phase;
+      // Progress must not blank the results palette after collections are live.
+      const blocking = message.phase === "error" || message.phase === "loading" || message.phase === "booting";
+      if (blocking && element.collections.length === 0) {
+        element.statusMessage = message.message ?? "";
+      } else if (message.phase === "error") {
+        element.statusMessage = message.message ?? "";
+      } else {
+        element.statusMessage = "";
+      }
     } else if (message.type === "error") {
       element.statusMessage = message.message;
       element.phase = "error";
     } else if (message.type === "ready") {
-      element.phase = "ready";
+      element.phase = message.phase || "ready";
       element.statusMessage = "";
-      element.collections = collections.map(makeCrawlCollection);
-    } else if (message.type === "results") {
-      element.phase = "ready";
+      element.collections = client.makeProviderCollections(message.collections);
+      element.placeholder = collections[0]?.placeholder ?? "Search this site";
     }
   });
 
-  client.init(manifestUrl.href, assetBase.href, collections);
+  client.init({
+    manifestUrl: manifestUrl.href,
+    assetBase: assetBase.href,
+    pageOrigin: location.origin,
+    collections,
+    refreshAfterMs: options.refreshAfterMs,
+  });
+
   element.placeholder = collections[0]?.placeholder ?? "Search this site";
   element.phase = "booting";
   element.statusMessage = "Starting AgentOS search…";
 
-  return { element, manifest, registration, runtime };
+  return { element, manifest, registration, runtime, client };
 }
+
+export { SEARCH_PROTOCOL_VERSION };

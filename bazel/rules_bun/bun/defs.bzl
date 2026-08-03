@@ -186,17 +186,12 @@ def _bun_package_link_impl(ctx):
     link_file = ctx.actions.declare_symlink(link_output_path)
     source_link_path = "{}/{}".format(ctx.file.root_marker.dirname, ctx.attr.link_path)
     relative_target = _relative_path(source_link_path, link_file.path)
-    if ctx.attr.package_name.startswith(".bin/"):
-        ctx.actions.symlink(
-            output = link_file,
-            target_path = relative_target,
-        )
-    else:
-        ctx.actions.symlink(
-            output = link_file,
-            target_path = relative_target,
-            target_type = "directory",
-        )
+    # Bazel 8+: actions.symlink no longer accepts target_type. Directory vs file
+    # is inferred from the target path; declare_symlink already marks the output.
+    ctx.actions.symlink(
+        output = link_file,
+        target_path = relative_target,
+    )
 
     return [
         DefaultInfo(files = depset([ctx.file.root_marker, link_file])),

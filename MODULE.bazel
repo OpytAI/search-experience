@@ -1,13 +1,50 @@
-"""search-experience — AgentOS site-search product.
+"""search-experience — AgentOS site-search product (Strategy B).
 
-Platform runtime (kernel, atlas, mc-core, catalog-compiler) is consumed from
-AgentOS GitHub releases via http_file. Guest services (searchd) are built via
-the AgentOS build graph in a sibling checkout and re-pinned here as digests.
-JS/TS uses vendored rules_bun for hermetic deps and live-workspace HMR.
+AgentOS is a **git-pinned Bazel module** dependency. Guest compilation (searchd,
+search-atlas) and runtime artifacts (kernel, atlas, mc-core, catalog-compiler)
+come from @agent-os//… labels.
+
+Dharma note: bzlmod only applies overrides from the **root** module. AgentOS was
+designed as root (elixir overrides, hermetic_cc zig_sdk only generated for root).
+This MODULE re-hosts the hermetic_cc extension at root and patches AgentOS to
+drop the Elixir/server block (not needed for guest wasm / searchd).
 """
 
 module(name = "search-experience", version = "0.1.0")
 
+# ---------------------------------------------------------------------------
+# AgentOS — plane B from Git
+# ---------------------------------------------------------------------------
+bazel_dep(name = "agent-os", version = "0.0.0")
+
+git_override(
+    module_name = "agent-os",
+    commit = "1b5bbc116c60d98b01c80e96d65caf3d628c1fcb",
+    patch_strip = 1,
+    patches = [
+        "//third_party/agent-os:0001-module-strip-elixir-server.patch",
+        "//third_party/agent-os:0002-tree-sitter-load-agent-os.patch",
+        # Luau glue copts used main-repo-relative -include paths; under @agent-os those
+        # resolve as missing headers and surface as zig CacheCheckFailed on every .cpp.
+        "//third_party/agent-os:0003-luau-include-external-root.patch",
+    ],
+    remote = "https://github.com/NarendraPatwardhan/agent-os.git",
+)
+
+# hermetic_cc only materializes @zig_sdk when the **root** module uses the extension
+# (see hermetic_cc_toolchain toolchain/ext.bzl). AgentOS imports zig_sdk for
+# git-engine; root must instantiate the extension.
+bazel_dep(name = "hermetic_cc_toolchain", version = "4.2.0")
+
+hermetic_cc = use_extension("@hermetic_cc_toolchain//toolchain:ext.bzl", "toolchains")
+use_repo(hermetic_cc, "zig_sdk")
+
+register_toolchains(
+    "@zig_sdk//toolchain/...",
+    "@zig_sdk//libc_aware/toolchain/...",
+)
+
+# Product JS toolchain (product-local rules_bun only)
 bazel_dep(name = "rules_bun", version = "0.0.0")
 local_path_override(
     module_name = "rules_bun",
@@ -35,46 +72,13 @@ use_repo(bun_deps, "js_deps")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_rust", version = "0.70.0")
+bazel_dep(name = "rules_cc", version = "0.2.18")
 
 http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
 # ---------------------------------------------------------------------------
-# AgentOS platform runtime — release pins (train A)
-# Bump AGENTOS_TAG + digests together; product release notes the platform tag.
-# ---------------------------------------------------------------------------
-_AGENTOS_TAG = "v0.5.0"
-_AGENTOS_BASE = "https://github.com/NarendraPatwardhan/agent-os/releases/download/" + _AGENTOS_TAG
-
-http_file(
-    name = "agentos_kernel",
-    downloaded_file_path = "kernel.wasm",
-    sha256 = "ab20b493f4d2fdd90a4e40b005d495d3cb15af4121167ce977a719beffe77008",
-    urls = [_AGENTOS_BASE + "/kernel.wasm"],
-)
-
-http_file(
-    name = "agentos_atlas",
-    downloaded_file_path = "atlas.tar",
-    sha256 = "3e970d471ef0434fca540badf757858686fa011b62416b310baffd7f77215d03",
-    urls = [_AGENTOS_BASE + "/atlas.tar"],
-)
-
-http_file(
-    name = "mc_core_mjs",
-    downloaded_file_path = "mc-core.mjs",
-    sha256 = "cd6e07185c79a642eadcaa29f477ebc273b5852395f957443e5cff736e96aa42",
-    urls = [_AGENTOS_BASE + "/mc-core.mjs"],
-)
-
-http_file(
-    name = "agentos_catalog_compiler",
-    downloaded_file_path = "catalog-compiler.wasm",
-    sha256 = "90205ce7e67767b395f221b01fd18c9fab45d95a88eb512ec1566887ad873de4",
-    urls = [_AGENTOS_BASE + "/catalog-compiler.wasm"],
-)
-
-# ---------------------------------------------------------------------------
-# Product-owned embedding model + ONNX Runtime (not AgentOS platform assets)
+# Product-owned embedding model + ONNX Runtime
 # ---------------------------------------------------------------------------
 http_file(
     name = "mxbai_embed_xsmall_v1_uint8",

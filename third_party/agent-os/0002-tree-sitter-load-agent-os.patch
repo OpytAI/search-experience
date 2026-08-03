@@ -1,0 +1,8 @@
+--- a/third_party/tree-sitter/BUILD.tree-sitter.bazel
++++ b/third_party/tree-sitter/BUILD.tree-sitter.bazel
+@@ -1,4 +1,4 @@
+ load("@rules_rust//rust:defs.bzl", "rust_library")
+-load("@//bazel:mc_program.bzl", "cc_headers")
++load("@agent-os//bazel:mc_program.bzl", "cc_headers")
+ 
+ package(default_visibility = ["//visibility:public"])

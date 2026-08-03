@@ -1,5 +1,5 @@
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
-load("//bazel:search.bzl", "search_build_binary", "search_command_test", "search_typecheck")
+load("//bazel:search.bzl", "search_build_binary", "search_typecheck")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -39,26 +39,31 @@ filegroup(
     ],
 )
 
-# Materialize release-pinned AgentOS bytes into this package for packaging.
+# ---------------------------------------------------------------------------
+# AgentOS plane B runtime artifacts (from git module @agent-os)
+# ---------------------------------------------------------------------------
 genrule(
     name = "agentos_runtime_assets",
     srcs = [
-        "@agentos_kernel//file",
-        "@agentos_atlas//file",
-        "@mc_core_mjs//file",
-        "@agentos_catalog_compiler//file",
+        "@agent-os//memcontainers/kernel/rust:kernel",
+        "@agent-os//memcontainers/sdk-js/core:bundle",
+        "@agent-os//memcontainers/lib/catalog-compiler:wasm",
     ],
     outs = [
         "runtime/kernel.wasm",
-        "runtime/atlas.tar",
         "runtime/mc-core.mjs",
         "runtime/catalog-compiler.wasm",
     ],
     cmd = "mkdir -p $(@D)/runtime && " +
-          "cp $(location @agentos_kernel//file) $(@D)/runtime/kernel.wasm && " +
-          "cp $(location @agentos_atlas//file) $(@D)/runtime/atlas.tar && " +
-          "cp $(location @mc_core_mjs//file) $(@D)/runtime/mc-core.mjs && " +
-          "cp $(location @agentos_catalog_compiler//file) $(@D)/runtime/catalog-compiler.wasm",
+          "cp $(location @agent-os//memcontainers/kernel/rust:kernel) $(@D)/runtime/kernel.wasm && " +
+          "cp $(location @agent-os//memcontainers/sdk-js/core:bundle) $(@D)/runtime/mc-core.mjs && " +
+          "cp $(location @agent-os//memcontainers/lib/catalog-compiler:wasm) $(@D)/runtime/catalog-compiler.wasm",
+)
+
+# Product image = atlas + searchd (built here against @agent-os)
+alias(
+    name = "product_image",
+    actual = "//guest/image:search_atlas",
 )
 
 search_build_binary(
@@ -101,8 +106,33 @@ genrule(
     cmd = "cp $(location :bundles)/agentos-search-embed.mjs $@",
 )
 
-# Manifest runs as a genrule so input paths are explicit $(location) values.
-# (bun_run_binary stages action inputs by execroot path, which breaks relative argv.)
+genrule(
+    name = "model_assets",
+    srcs = [
+        "@mxbai_embed_xsmall_v1_uint8//file",
+        "@mxbai_embed_xsmall_v1_tokenizer//file",
+        "@mxbai_embed_xsmall_v1_tokenizer_config//file",
+        "@mxbai_embed_xsmall_v1_config//file",
+        "@agentos_search_ort_runtime_js//file",
+        "@agentos_search_ort_runtime_wasm//file",
+    ],
+    outs = [
+        "model/model.onnx",
+        "model/tokenizer.json",
+        "model/tokenizer_config.json",
+        "model/config.json",
+        "model/runtime/ort-wasm-simd-threaded.jsep.mjs",
+        "model/runtime/ort-wasm-simd-threaded.jsep.wasm",
+    ],
+    cmd = "mkdir -p $(@D)/model/runtime && " +
+          "cp $(location @mxbai_embed_xsmall_v1_uint8//file) $(@D)/model/model.onnx && " +
+          "cp $(location @mxbai_embed_xsmall_v1_tokenizer//file) $(@D)/model/tokenizer.json && " +
+          "cp $(location @mxbai_embed_xsmall_v1_tokenizer_config//file) $(@D)/model/tokenizer_config.json && " +
+          "cp $(location @mxbai_embed_xsmall_v1_config//file) $(@D)/model/config.json && " +
+          "cp $(location @agentos_search_ort_runtime_js//file) $(@D)/model/runtime/ort-wasm-simd-threaded.jsep.mjs && " +
+          "cp $(location @agentos_search_ort_runtime_wasm//file) $(@D)/model/runtime/ort-wasm-simd-threaded.jsep.wasm",
+)
+
 genrule(
     name = "manifest",
     srcs = [
@@ -111,9 +141,17 @@ genrule(
         ":pick_runtime_bundle",
         ":pick_embed_bundle",
         ":runtime/kernel.wasm",
-        ":runtime/atlas.tar",
+        ":product_image",
         ":runtime/catalog-compiler.wasm",
+        ":runtime/mc-core.mjs",
         "//index:schema.sql",
+        "//guest/searchd:protocol",
+        ":model/model.onnx",
+        ":model/tokenizer.json",
+        ":model/tokenizer_config.json",
+        ":model/config.json",
+        ":model/runtime/ort-wasm-simd-threaded.jsep.mjs",
+        ":model/runtime/ort-wasm-simd-threaded.jsep.wasm",
         "//tools:manifest.mjs",
     ],
     outs = ["agentos-search.manifest.json"],
@@ -123,13 +161,23 @@ genrule(
           "$(location :pick_runtime_bundle) " +
           "$(location :pick_embed_bundle) " +
           "$(location :runtime/kernel.wasm) " +
-          "$(location :runtime/atlas.tar) " +
+          "$(location :product_image) " +
           "$(location //index:schema.sql) " +
-          "$(location :runtime/catalog-compiler.wasm)",
+          "$(location :runtime/catalog-compiler.wasm) " +
+          "$(location //guest/searchd:protocol) " +
+          "NONE " +
+          "$(location :runtime/mc-core.mjs) " +
+          "--model " +
+          "$(location :model/model.onnx) " +
+          "$(location :model/tokenizer.json) " +
+          "$(location :model/tokenizer_config.json) " +
+          "$(location :model/config.json) " +
+          "$(location :model/runtime/ort-wasm-simd-threaded.jsep.mjs) " +
+          "$(location :model/runtime/ort-wasm-simd-threaded.jsep.wasm)",
     tools = ["@bun//:bun"],
 )
 
-# The one copyable search-experience directory for site owners.
+# Copy-and-import directory for site owners (plane B artifacts only for AgentOS).
 pkg_tar(
     name = "release",
     files = {
@@ -140,10 +188,17 @@ pkg_tar(
         ":pick_runtime_bundle": "agentos-search-runtime.mjs",
         ":pick_worker_bundle": "agentos-search-sw.mjs",
         "//index:schema.sql": "index/schema.sql",
-        "@agentos_atlas//file": "atlas.tar",
-        "@agentos_kernel//file": "kernel.wasm",
-        "@agentos_catalog_compiler//file": "catalog-compiler.wasm",
-        "@mc_core_mjs//file": "mc-core.mjs",
+        ":product_image": "search-atlas.tar",
+        ":runtime/kernel.wasm": "kernel.wasm",
+        ":runtime/catalog-compiler.wasm": "catalog-compiler.wasm",
+        ":runtime/mc-core.mjs": "mc-core.mjs",
+        "//guest/searchd:protocol": "searchd/searchd.protocol.json",
+        ":model/model.onnx": "model/model.onnx",
+        ":model/tokenizer.json": "model/tokenizer.json",
+        ":model/tokenizer_config.json": "model/tokenizer_config.json",
+        ":model/config.json": "model/config.json",
+        ":model/runtime/ort-wasm-simd-threaded.jsep.mjs": "model/runtime/ort-wasm-simd-threaded.jsep.mjs",
+        ":model/runtime/ort-wasm-simd-threaded.jsep.wasm": "model/runtime/ort-wasm-simd-threaded.jsep.wasm",
     },
     owner = "0.0",
     package_dir = "agentos-search",

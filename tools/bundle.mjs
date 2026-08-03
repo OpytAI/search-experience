@@ -39,9 +39,34 @@ function browserNodeShim(id) {
   return `${exports.join("\n")}\nexport default Object.freeze({});\n`;
 }
 
+function resolveTransformersWeb() {
+  // Force the browser build so we never ship transformers.node.* into product.
+  const candidates = [
+    "@huggingface/transformers/dist/transformers.web.js",
+    "@huggingface/transformers/dist/transformers.web.min.js",
+  ];
+  for (const c of candidates) {
+    try {
+      return require.resolve(c);
+    } catch {
+      /* try next */
+    }
+  }
+  try {
+    const pkg = require.resolve("@huggingface/transformers/package.json");
+    const { dirname, join } = require("node:path");
+    return join(dirname(pkg), "dist", "transformers.web.js");
+  } catch {
+    return null;
+  }
+}
+
+const isEmbedEntry = input.endsWith("embedding.ts") || output.endsWith("agentos-search-embed.mjs");
+
 const bundle = await rolldown({
   input,
   platform,
+  // Never externalize transformers for browser product bundles — must be hermetic.
   external: platform === "node" ? isExternal : undefined,
   plugins: [{
     name: "search-resolve",
@@ -49,12 +74,16 @@ const bundle = await rolldown({
       if (platform === "browser" && isExternal(id)) {
         return `\0search-browser-node-shim:${id.replace(/^node:/, "")}`;
       }
-      if (id === "onnxruntime-common") {
+      if (id === "onnxruntime-common" || id === "onnxruntime-web") {
         try {
           return require.resolve(id);
         } catch {
           return null;
         }
+      }
+      if (id === "@huggingface/transformers" || id.startsWith("@huggingface/transformers/")) {
+        const web = resolveTransformersWeb();
+        if (web) return web;
       }
       // Prefer vendored mc-core.mjs when present in the package stage.
       if (id === "@mc/core" || id === "mc-core" || id.endsWith("/mc-core.mjs")) {
@@ -78,3 +107,26 @@ await bundle.write({
   codeSplitting: false,
 });
 await bundle.close();
+
+// Guard: product browser bundles must not leave bare npm imports for transformers.
+// Doc comments inside inlined transformers.web.js mention the package name — strip comments first.
+if (platform === "browser") {
+  const { readFile } = await import("node:fs/promises");
+  const code = await readFile(output, "utf8");
+  const stripped = code
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:\\])\/\/[^\n]*/g, "$1");
+  const liveImport =
+    /import\s*\(\s*["']@huggingface\/transformers["']\s*\)/.test(stripped) ||
+    /from\s+["']@huggingface\/transformers["']/.test(stripped) ||
+    /import\s+[^;]*["']@huggingface\/transformers["']/.test(stripped);
+  if (liveImport) {
+    throw new Error(
+      `${output}: hermetic check failed — live @huggingface/transformers import remains. ` +
+        `Bundle transformers into the artifact (especially agentos-search-embed.mjs).`,
+    );
+  }
+  if (isEmbedEntry && code.length < 100_000) {
+    throw new Error(`${output}: embed bundle too small (${code.length} B); transformers likely not inlined`);
+  }
+}

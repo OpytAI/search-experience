@@ -1,6 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["README.md"])
+exports_files([
+    "README.md",
+])
 
 filegroup(
     name = "sources",
@@ -9,4 +11,14 @@ filegroup(
         exclude = ["BUILD.bazel"],
         allow_empty = True,
     ),
+)
+
+alias(
+    name = "searchd_protocol",
+    actual = "//guest/searchd:protocol",
+)
+
+alias(
+    name = "search_atlas",
+    actual = "//guest/image:search_atlas",
 )

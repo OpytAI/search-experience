@@ -15,6 +15,12 @@ export type {
   SearchPreview,
   SearchSelectionDetail,
 } from "./search/types.js";
+export {
+  SEARCH_PROTOCOL_VERSION,
+  SEARCHD_PROTOCOL_VERSION,
+  SEARCHD_SERVICE_NAME,
+  HOST_TOOL_ADDRESSES,
+} from "./protocol/versions.js";
 
 let automaticBootstrap: Promise<unknown> | undefined;
 

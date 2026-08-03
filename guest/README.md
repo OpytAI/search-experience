@@ -1,31 +1,47 @@
 # Guest build graph (AgentOS plane B)
 
-This directory is reserved for the **resident search guest** path. Platform
-runtime artifacts (kernel, base atlas, `mc-core.mjs`) continue to be consumed
-from **AgentOS GitHub releases** via `http_file` pins in the product
-`MODULE.bazel`. Guest compilation needs the full AgentOS build graph and is
-**not** performed as a thin nested `bazel_dep` inside this product module.
+AgentOS is a **git-pinned Bazel module** (`bazel_dep` + `git_override` in the
+product `MODULE.bazel`). Guest compilation and runtime artifacts are labels
+under `@agent-os//…` plus product-owned `//guest/...`.
+
+There is **no** plane-A (GitHub release `http_file`) path for kernel/image/mc-core.
 
 ## Layout
 
 ```text
 guest/
-  searchd/     # mc_rust_program (or equivalent) service = "searchd"
-  image/       # overlay: release atlas + searchd layer → search-atlas.tar
+  searchd/     # stamped /svc/searchd (Rust + protocol JSON)
+  image/       # search-atlas = base + sqlite layer + searchd layer
 ```
 
-## Build workflow (sibling AgentOS)
+## Authority rule
 
-1. Check out AgentOS next to this repo (for example
-   `../agent-os/agent-os-search`).
-2. Author `searchd` with AgentOS macros (`bazel/mc_program.bzl`, service stamp /
-   attest, `mc_service_layer`).
-3. Build a product image overlay on stock **atlas** (do not invent a second
-   global AgentOS flavor).
-4. Publish or copy `search-atlas.tar` + sha256 into this product’s pins
-   (`http_file` or CI artifact URL).
-5. Point `//:release` at the product image instead of stock `atlas.tar`.
-6. Host runtime worker talks to `vm.serviceCall("searchd", …)`.
+- **searchd** owns crawl/index/query policy.
+- Host tools only fetch, extract, and embed.
+- Runtime worker is a thin adapter: boot/restore, tools, `serviceCall`, snapshots.
+- **No Luau production transport** — serviceCall only.
 
-Until `searchd` ships, the product uses **stock atlas** from the AgentOS release
-tag pinned in `MODULE.bazel`.
+## Build
+
+```sh
+bazel build //guest/searchd:searchd
+bazel build //guest/image:search_atlas
+# → bazel-bin/guest/image/search_atlas.tar
+```
+
+## Ship path
+
+1. Product builds `search-atlas.tar` (base + `/svc/sqlite` + `/svc/searchd`).
+2. Plane-B kernel, mc-core, catalog-compiler from `@agent-os//…`.
+3. Runtime boots search-atlas and talks `vm.serviceCall("searchd", …)`.
+
+Guest durable state lives under **`/var/searchd/`** (product-canonical). See
+[`searchd/README.md`](searchd/README.md) for the path table (active vs candidate DB).
+
+## Nested Luau note
+
+Stock AgentOS `atlas` includes loom (`/bin/luau`). Nested compilation of Luau
+under `@agent-os` can hit Zig `CacheCheckFailed` when main-repo-relative
+`-include` paths do not resolve (see patch `0003-luau-include-external-root`).
+This product does not need Luau in the image; search-atlas layers sqlite +
+searchd on **base** (no coreutils) instead.

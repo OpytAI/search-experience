@@ -1,0 +1,7 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "0001-module-strip-elixir-server.patch",
+    "0002-tree-sitter-load-agent-os.patch",
+    "0003-luau-include-external-root.patch",
+])

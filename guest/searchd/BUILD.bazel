@@ -1,0 +1,44 @@
+load("@agent-os//bazel:mc_program.bzl", "mc_rust_program", "mc_service_layer")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "searchd.protocol.json",
+    "README.md",
+])
+
+# /svc/searchd — product-local site-search authority (plane B via @agent-os).
+# Stitches /svc/sqlite + /svc/tools. Protocol: searchd.protocol.json.
+
+rust_binary(
+    name = "searchd_bin",
+    srcs = ["src/main.rs"],
+    crate_root = "src/main.rs",
+    edition = "2021",
+    tags = ["manual"],
+    deps = [
+        "@agent-os//memcontainers/lib/json:lib",
+        "@agent-os//memcontainers/sysroot/rust:lib",
+    ],
+)
+
+mc_rust_program(
+    name = "searchd",
+    fuel = 2000000000000,
+    lib = ":searchd_bin",
+    mem = 256 * 1024 * 1024,
+    service = "searchd",
+    table = 10000,
+    tier = "full",
+)
+
+mc_service_layer(
+    name = "searchd_layer",
+    eager = [":searchd"],
+)
+
+filegroup(
+    name = "protocol",
+    srcs = ["searchd.protocol.json"],
+)

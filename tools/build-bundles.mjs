@@ -9,9 +9,9 @@ import { resolve } from "node:path";
 const outDir = resolve("dist-bundles");
 await mkdir(outDir, { recursive: true });
 
+// Only ship bundles that appear in //:release (no unused element-only entry).
 const entries = [
   ["src/index.ts", "agentos-search.mjs", "browser"],
-  ["src/register.ts", "agentos-search-element.mjs", "browser"],
   ["src/runtime-worker.ts", "agentos-search-runtime.mjs", "browser"],
   ["src/service-worker.ts", "agentos-search-sw.mjs", "browser"],
   ["src/embedding.ts", "agentos-search-embed.mjs", "browser"],
