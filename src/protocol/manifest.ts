@@ -28,7 +28,7 @@ export interface SearchExperienceManifest {
   version: string;
   agentos: {
     tag: string;
-    /** Product image: plane-B search-atlas (posix + sqlite + /svc/searchd). */
+    /** Product guest image (search-atlas: base + sqlite + /svc/searchd). */
     image: "search-atlas" | string;
   };
   service: {

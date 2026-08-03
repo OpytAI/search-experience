@@ -2,11 +2,76 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Collections example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Collections · AgentOS Search Demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <h1>Collections example</h1>
-    <p>Independent docs and blog collections will be filterable in the palette.</p>
-    <p><a href="/">Home</a></p>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span class="brand-text">
+          AgentOS Search
+          <small>demo site</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/runtime.html">Docs</a>
+        <a href="/blog/collections.html" aria-current="page">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search the demo site"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Blog</p>
+          <span>/blog/collections.html</span>
+        </div>
+        <h1>Collections example</h1>
+        <p class="lead">
+          Docs and blog stay independent sections in the palette — separate labels,
+          prefixes, and crawl seeds — without the host inventing ranking policy.
+        </p>
+
+        <h2>Why collections</h2>
+        <p>
+          Integrators configure crawl scopes (seeds, path prefixes, limits). The guest
+          owns how those scopes become indexed generations. The UI only presents
+          collection labels and routes selection to the right result set.
+        </p>
+
+        <h2>In this demo</h2>
+        <ul>
+          <li><strong>Documentation</strong> — seeds under <code>/docs/</code>, prefix <code>docs:</code>.</li>
+          <li><strong>Blog</strong> — seeds under <code>/blog/</code>, prefix <code>blog:</code>.</li>
+          <li>Empty query can show recents; typed queries fan out per collection.</li>
+        </ul>
+
+        <div class="callout">
+          <strong>Try a prefix</strong>
+          Open search with <kbd>⌘K</kbd>, type <code>blog:</code> and a word from this
+          page to stay inside the blog collection.
+        </div>
+
+        <h2>Presentation</h2>
+        <p>
+          Each hit can carry a preview (eyebrow, title, description, facts). The
+          palette keeps list and preview side-by-side on desktop so scanning feels
+          like a command bar, not a bare results table.
+        </p>
+
+        <p><a href="/docs/runtime.html">← Runtime notes</a> · <a href="/">Home →</a></p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      AgentOS search-experience demo ·
+      <a href="/">Home</a> ·
+      <a href="/docs/runtime.html">Runtime</a>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -8,7 +8,7 @@ exports_files([
     "README.md",
 ])
 
-# /svc/searchd — product-local site-search authority (plane B via @agent-os).
+# /svc/searchd — product-local site-search authority (built with @agent-os mc_program).
 # Stitches /svc/sqlite + /svc/tools. Protocol: searchd.protocol.json.
 
 rust_binary(

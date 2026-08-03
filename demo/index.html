@@ -7,19 +7,66 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main>
-      <h1>AgentOS Search Experience</h1>
-      <p>
-        Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> to open the palette.
-        Run <code>bazel run //demo:dev</code> for local development.
-      </p>
-      <p>
-        <a href="/docs/runtime.html">Runtime notes</a>
-        ·
-        <a href="/blog/collections.html">Collections example</a>
-      </p>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span class="brand-text">
+          AgentOS Search
+          <small>demo site</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/" aria-current="page">Home</a>
+        <a href="/docs/runtime.html">Docs</a>
+        <a href="/blog/collections.html">Blog</a>
+      </nav>
       <mc-site-search placeholder="Search the demo site"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <section class="hero">
+        <p class="eyebrow">Product demo</p>
+        <h1>Site search on AgentOS</h1>
+        <p class="lead">
+          Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> from any page to open the palette.
+          When release assets are mounted under <code>/agentos-search/</code>, the real
+          guest path boots; otherwise fixture collections keep the UI usable.
+        </p>
+        <div class="card-grid">
+          <a class="card" href="/docs/runtime.html">
+            <span class="tag">docs</span>
+            <h2>Runtime notes</h2>
+            <p>Kernel, search-atlas, searchd, and host tools in the production path.</p>
+          </a>
+          <a class="card" href="/blog/collections.html">
+            <span class="tag">blog</span>
+            <h2>Collections</h2>
+            <p>How docs and blog stay first-class sections in the palette.</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="article">
+        <h2>Try it</h2>
+        <ul>
+          <li>Open search with the header button or <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>.</li>
+          <li>Filter with prefixes like <code>docs:</code> or <code>blog:</code>.</li>
+          <li>Navigate results with arrows; preview stays on the right.</li>
+        </ul>
+        <div class="callout">
+          <strong>Local workflow</strong>
+          Run <code>bazel run //demo:dev</code>, then optionally unpack
+          <code>//:release</code> into <code>demo/public/</code> for the full product path.
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      AgentOS search-experience demo ·
+      <a href="/docs/runtime.html">Runtime</a> ·
+      <a href="/blog/collections.html">Collections</a>
+    </footer>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

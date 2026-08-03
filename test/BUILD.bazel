@@ -8,9 +8,42 @@ filegroup(
 )
 
 search_command_test(
-    name = "logic_test",
+    name = "protocol_test",
     chdir = ".",
-    fixed_args = [
-        "test/logic.test.ts",
+    fixed_args = ["test/protocol.test.ts"],
+)
+
+search_command_test(
+    name = "host_tools_test",
+    chdir = ".",
+    fixed_args = ["test/host-tools.test.ts"],
+)
+
+search_command_test(
+    name = "search_ui_test",
+    chdir = ".",
+    fixed_args = ["test/search-ui.test.ts"],
+)
+
+search_command_test(
+    name = "searchd_client_test",
+    chdir = ".",
+    fixed_args = ["test/searchd-client.test.ts"],
+)
+
+search_command_test(
+    name = "contracts_test",
+    chdir = ".",
+    fixed_args = ["test/contracts.test.ts"],
+)
+
+test_suite(
+    name = "unit",
+    tests = [
+        ":protocol_test",
+        ":host_tools_test",
+        ":search_ui_test",
+        ":searchd_client_test",
+        ":contracts_test",
     ],
 )

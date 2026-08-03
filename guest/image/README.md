@@ -1,11 +1,11 @@
 # guest/image — product guest image (`search-atlas`)
 
-Plane **B** only: built from `@agent-os//…` labels plus `//guest/searchd`.
+Built from `@agent-os//…` labels plus `//guest/searchd`.
 
 ## Composition
 
 | Layer | Source | Role |
-|-------|--------|------|
+| --- | --- | --- |
 | `base` | `@agent-os//memcontainers/images:base` | `/bin/sh`, pkgfsd, `/svc/tools`, adapters, git |
 | `sqlite_layer` | product `mc_service_layer` over public sqlite | `/svc/sqlite` (FTS5) |
 | `searchd_layer` | `//guest/searchd:searchd_layer` | `/svc/searchd` — product policy authority |

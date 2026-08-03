@@ -1,19 +1,19 @@
-"""search-experience — AgentOS site-search product (Strategy B).
+"""search-experience — AgentOS site-search product.
 
-AgentOS is a **git-pinned Bazel module** dependency. Guest compilation (searchd,
-search-atlas) and runtime artifacts (kernel, atlas, mc-core, catalog-compiler)
-come from @agent-os//… labels.
+AgentOS is a git-pinned Bazel module. Guest compilation (searchd, search-atlas)
+and runtime artifacts (kernel, mc-core, catalog-compiler) come from @agent-os//…
+labels built from that pin — not from prebuilt release downloads.
 
-Dharma note: bzlmod only applies overrides from the **root** module. AgentOS was
-designed as root (elixir overrides, hermetic_cc zig_sdk only generated for root).
-This MODULE re-hosts the hermetic_cc extension at root and patches AgentOS to
-drop the Elixir/server block (not needed for guest wasm / searchd).
+bzlmod only applies overrides from the root module. AgentOS assumes it is root
+for some extensions (elixir, hermetic_cc @zig_sdk). This MODULE re-hosts
+hermetic_cc at root and patches AgentOS to drop the Elixir/server block (not
+needed for guest wasm / searchd).
 """
 
 module(name = "search-experience", version = "0.1.0")
 
 # ---------------------------------------------------------------------------
-# AgentOS — plane B from Git
+# AgentOS — git-pinned external module
 # ---------------------------------------------------------------------------
 bazel_dep(name = "agent-os", version = "0.0.0")
 

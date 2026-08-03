@@ -1,7 +1,9 @@
 /**
- * Demo host — release-like product path.
+ * Demo host — release-like product path on every page.
  * Boots the real runtime worker against copied AgentOS assets when present;
  * otherwise falls back to static fixture collections for UI-only HMR.
+ *
+ * Loaded from home, docs, and blog so ⌘K / Ctrl+K works site-wide.
  */
 import "../../src/register.js";
 import type { McSiteSearch } from "../../src/elements/mc-site-search.js";
@@ -19,7 +21,7 @@ const fixtureItems: SearchItem[] = [
     preview: {
       eyebrow: "docs",
       title: "Runtime notes",
-      description: "Kernel, atlas, searchd, and host tools.",
+      description: "Kernel, search-atlas, searchd, and host tools.",
       facts: [{ label: "Path", value: "/docs/runtime.html" }],
     },
   },
@@ -33,7 +35,8 @@ const fixtureItems: SearchItem[] = [
     preview: {
       eyebrow: "blog",
       title: "Collections example",
-      description: "Docs and blog as separate sections.",
+      description: "Docs and blog as separate sections in the palette.",
+      facts: [{ label: "Path", value: "/blog/collections.html" }],
     },
   },
 ];
@@ -77,13 +80,22 @@ function fixtureCollections(): SearchCollection[] {
   ];
 }
 
-const element = document.querySelector<McSiteSearch>("mc-site-search");
-if (element) {
+/** Ensure a palette host exists (header slot preferred; else body mount). */
+function ensureSearchElement(): McSiteSearch {
+  let element = document.querySelector<McSiteSearch>("mc-site-search");
+  if (!element) {
+    element = document.createElement("mc-site-search") as McSiteSearch;
+    const header = document.querySelector(".site-header");
+    if (header) header.append(element);
+    else document.body.prepend(element);
+  }
   element.showLauncher = true;
   element.placeholder = "Search the demo site";
+  return element;
 }
 
-// Prefer the real product bootstrap when a release-like package is available.
+const element = ensureSearchElement();
+
 const releaseManifest = new URL("/agentos-search/agentos-search.manifest.json", location.href);
 void (async () => {
   try {
@@ -114,11 +126,9 @@ void (async () => {
     await bootstrapSearchExperience(globalThis.AgentOSSearch);
     console.info("[search-experience demo] product path ready");
   } catch {
-    if (element) {
-      element.statusMessage = "";
-      element.phase = "demo";
-      element.collections = fixtureCollections();
-    }
+    element.statusMessage = "";
+    element.phase = "demo";
+    element.collections = fixtureCollections();
     console.info("[search-experience demo] fixture collections (release assets not mounted)");
   }
 })();

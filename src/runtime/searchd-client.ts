@@ -1,8 +1,7 @@
 /**
  * Thin transport to guest `/svc/searchd` — serviceCall only.
  *
- * Production path is the stamped searchd binary in search-atlas. There is no
- * Luau file-transport fallback (that was an interim dual path; removed).
+ * Production path is the stamped searchd binary in search-atlas via serviceCall.
  */
 
 import {

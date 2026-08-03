@@ -51,7 +51,6 @@ if (!schemaPath) {
   );
 }
 
-// Plane B product image only.
 const imageName = "search-atlas";
 const imageUrl = "search-atlas.tar";
 
@@ -116,8 +115,8 @@ const manifest = {
   protocol: 1,
   version: "0.1.0",
   agentos: {
-    // Plane B build graph; tag is informational (kernel/image digests are the contract).
-    tag: "plane-B",
+    // Informational only — kernel/image digests in assets are the real compatibility key.
+    tag: "source",
     image: imageName,
   },
   service: {

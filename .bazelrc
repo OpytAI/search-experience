@@ -1,4 +1,4 @@
-# search-experience — product root; AgentOS plane B via git_override
+# search-experience — product root; AgentOS via git_override
 
 common --enable_bzlmod
 common --enable_workspace=false

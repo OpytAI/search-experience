@@ -40,7 +40,7 @@ filegroup(
 )
 
 # ---------------------------------------------------------------------------
-# AgentOS plane B runtime artifacts (from git module @agent-os)
+# AgentOS runtime artifacts (built from git module @agent-os)
 # ---------------------------------------------------------------------------
 genrule(
     name = "agentos_runtime_assets",
@@ -177,7 +177,7 @@ genrule(
     tools = ["@bun//:bun"],
 )
 
-# Copy-and-import directory for site owners (plane B artifacts only for AgentOS).
+# Copy-and-import directory for site owners (AgentOS + product guest, all from this graph).
 pkg_tar(
     name = "release",
     files = {
@@ -214,7 +214,7 @@ test_suite(
     name = "check",
     tests = [
         ":typecheck",
-        "//test:logic_test",
+        "//test:unit",
         "//demo:typecheck",
     ],
 )

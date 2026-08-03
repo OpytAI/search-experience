@@ -3,7 +3,7 @@ load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 package(default_visibility = ["//visibility:public"])
 
-# search-atlas — product guest image (plane B only).
+# search-atlas — product guest image.
 #
 # Stock AgentOS `atlas` = loom (posix + /bin/luau) + /svc/sqlite. This product does
 # NOT ship Luau as a production authority path (serviceCall-only; /svc/searchd is the

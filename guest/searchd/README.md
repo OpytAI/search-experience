@@ -3,13 +3,13 @@
 `searchd` is the sole product authority for crawl planning, schema/journals,
 FTS5/VANN retrieval, fusion, generation validation, and promotion.
 
-Built **here** via plane B (`@agent-os//bazel:mc_program.bzl`), not in the
-AgentOS monorepo and not from release pins.
+Built **in this repo** with `@agent-os//bazel:mc_program.bzl` — not inside the
+AgentOS monorepo, and not downloaded as a prebuilt binary.
 
 ## Protocol
 
 - Machine-readable: [`searchd.protocol.json`](searchd.protocol.json)
-- TypeScript mirror: `src/protocol/searchd.ts` in this product repo
+- TypeScript mirror: `src/protocol/searchd.ts`
 - Transport: **`vm.serviceCall("searchd", requestBytes)` only**
 
 ## Host tools (effects only)
@@ -30,8 +30,6 @@ bazel build //guest/image:search_atlas
 # base + /svc/sqlite + /svc/searchd → search_atlas.tar
 ```
 
-Targets:
-
 | Target | Role |
 | --- | --- |
 | `//guest/searchd:searchd` | `mc_rust_program` service=`searchd` |
@@ -42,23 +40,24 @@ Targets:
 
 SQL schema is product-owned: `../../index/schema.sql` (packaged into release).
 
-## Guest filesystem paths (product-canonical)
+## Guest filesystem paths
 
 | Path | Role |
 | --- | --- |
 | `/var/searchd/` | Product state root (survives MCSN snapshots) |
 | `/var/searchd/index.db` | **Always** the active SQLite index (queries forever) |
-| `/var/searchd/candidate.db` | Refresh write target only; promote **copies** → index.db then wipes |
+| `/var/searchd/candidate.db` | Refresh write target only; promote copies → index.db then wipes |
 | `/var/searchd/state.json` | Journals, queues, generation metadata |
 
-### Dual-DB refresh (every cycle)
+### Dual-DB refresh
 
 1. Queries always open `index.db`.
-2. `refresh` wipes and rebuilds `candidate.db` only.
-3. Promote requires non-empty candidate pages; copies candidate → index; wipes candidate.
-4. Next refresh again uses a fresh `candidate.db` — isolation never collapses.
+2. Cold first index writes `index.db` directly.
+3. `refresh` rebuilds `candidate.db` only.
+4. Promote requires non-empty candidate pages **and** chunks; copies candidate → index; wipes candidate.
+5. Next refresh uses a fresh `candidate.db`.
 
 ## Note on `main.luau`
 
-`main.luau` may remain as a historical reference. It is **not** shipped in
-`//:release` and is **not** a production or test-oracle path.
+`main.luau` may remain as historical reference. It is **not** shipped in
+`//:release` and is not a production or test path.
