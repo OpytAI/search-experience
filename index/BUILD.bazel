@@ -1,0 +1,8 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["schema.sql"])
+
+filegroup(
+    name = "sources",
+    srcs = glob(["**"], exclude = ["BUILD.bazel"], allow_empty = True),
+)

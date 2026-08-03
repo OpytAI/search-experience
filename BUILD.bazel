@@ -1,0 +1,165 @@
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("//bazel:search.bzl", "search_build_binary", "search_command_test", "search_typecheck")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "package.json",
+    "bunfig.toml",
+    "bun.lock",
+    "tsconfig.json",
+    "README.md",
+])
+
+filegroup(
+    name = "root_sources",
+    srcs = glob(
+        [
+            "*.bazel",
+            "*.json",
+            "*.md",
+            "*.toml",
+            "bun.lock",
+        ],
+        allow_empty = True,
+    ),
+)
+
+filegroup(
+    name = "all_sources",
+    srcs = [
+        ":root_sources",
+        "//bazel:sources",
+        "//demo:sources",
+        "//guest:sources",
+        "//index:sources",
+        "//src:sources",
+        "//test:sources",
+        "//tools:sources",
+    ],
+)
+
+# Materialize release-pinned AgentOS bytes into this package for packaging.
+genrule(
+    name = "agentos_runtime_assets",
+    srcs = [
+        "@agentos_kernel//file",
+        "@agentos_atlas//file",
+        "@mc_core_mjs//file",
+        "@agentos_catalog_compiler//file",
+    ],
+    outs = [
+        "runtime/kernel.wasm",
+        "runtime/atlas.tar",
+        "runtime/mc-core.mjs",
+        "runtime/catalog-compiler.wasm",
+    ],
+    cmd = "mkdir -p $(@D)/runtime && " +
+          "cp $(location @agentos_kernel//file) $(@D)/runtime/kernel.wasm && " +
+          "cp $(location @agentos_atlas//file) $(@D)/runtime/atlas.tar && " +
+          "cp $(location @mc_core_mjs//file) $(@D)/runtime/mc-core.mjs && " +
+          "cp $(location @agentos_catalog_compiler//file) $(@D)/runtime/catalog-compiler.wasm",
+)
+
+search_build_binary(
+    name = "bundles",
+    chdir = ".",
+    fixed_args = [
+        "tools/build-bundles.mjs",
+    ],
+    out_dir = "dist-bundles",
+    srcs = [
+        "//:all_sources",
+    ],
+)
+
+genrule(
+    name = "pick_main_bundle",
+    srcs = [":bundles"],
+    outs = ["agentos-search.mjs"],
+    cmd = "cp $(location :bundles)/agentos-search.mjs $@",
+)
+
+genrule(
+    name = "pick_runtime_bundle",
+    srcs = [":bundles"],
+    outs = ["agentos-search-runtime.mjs"],
+    cmd = "cp $(location :bundles)/agentos-search-runtime.mjs $@",
+)
+
+genrule(
+    name = "pick_worker_bundle",
+    srcs = [":bundles"],
+    outs = ["agentos-search-sw.mjs"],
+    cmd = "cp $(location :bundles)/agentos-search-sw.mjs $@",
+)
+
+genrule(
+    name = "pick_embed_bundle",
+    srcs = [":bundles"],
+    outs = ["agentos-search-embed.mjs"],
+    cmd = "cp $(location :bundles)/agentos-search-embed.mjs $@",
+)
+
+# Manifest runs as a genrule so input paths are explicit $(location) values.
+# (bun_run_binary stages action inputs by execroot path, which breaks relative argv.)
+genrule(
+    name = "manifest",
+    srcs = [
+        ":pick_main_bundle",
+        ":pick_worker_bundle",
+        ":pick_runtime_bundle",
+        ":pick_embed_bundle",
+        ":runtime/kernel.wasm",
+        ":runtime/atlas.tar",
+        ":runtime/catalog-compiler.wasm",
+        "//index:schema.sql",
+        "//tools:manifest.mjs",
+    ],
+    outs = ["agentos-search.manifest.json"],
+    cmd = "$(location @bun//:bun) $(location //tools:manifest.mjs) $@ " +
+          "$(location :pick_main_bundle) " +
+          "$(location :pick_worker_bundle) " +
+          "$(location :pick_runtime_bundle) " +
+          "$(location :pick_embed_bundle) " +
+          "$(location :runtime/kernel.wasm) " +
+          "$(location :runtime/atlas.tar) " +
+          "$(location //index:schema.sql) " +
+          "$(location :runtime/catalog-compiler.wasm)",
+    tools = ["@bun//:bun"],
+)
+
+# The one copyable search-experience directory for site owners.
+pkg_tar(
+    name = "release",
+    files = {
+        "README.md": "README.md",
+        ":pick_main_bundle": "agentos-search.mjs",
+        ":pick_embed_bundle": "agentos-search-embed.mjs",
+        ":manifest": "agentos-search.manifest.json",
+        ":pick_runtime_bundle": "agentos-search-runtime.mjs",
+        ":pick_worker_bundle": "agentos-search-sw.mjs",
+        "//index:schema.sql": "index/schema.sql",
+        "@agentos_atlas//file": "atlas.tar",
+        "@agentos_kernel//file": "kernel.wasm",
+        "@agentos_catalog_compiler//file": "catalog-compiler.wasm",
+        "@mc_core_mjs//file": "mc-core.mjs",
+    },
+    owner = "0.0",
+    package_dir = "agentos-search",
+)
+
+search_typecheck(
+    name = "typecheck",
+    chdir = ".",
+    tsconfig = "tsconfig.json",
+)
+
+test_suite(
+    name = "check",
+    tests = [
+        ":typecheck",
+        "//test:logic_test",
+        "//demo:typecheck",
+    ],
+)

@@ -1,0 +1,48 @@
+load("//bazel:search.bzl", "search_build_binary", "search_dev_binary", "search_typecheck")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["package.json"])
+
+filegroup(
+    name = "sources",
+    srcs = ["BUILD.bazel"] + glob(
+        ["**"],
+        exclude = [
+            "BUILD.bazel",
+            "dist/**",
+            "node_modules/**",
+        ],
+    ),
+)
+
+# Typecheck demo + product sources from the repo root so root node_modules
+# (lit, etc.) resolve for files under src/ imported by the demo.
+search_typecheck(
+    name = "typecheck",
+    chdir = ".",
+    tsconfig = "demo/tsconfig.json",
+)
+
+search_dev_binary(
+    name = "dev",
+    chdir = "demo",
+    fixed_args = [
+        "node_modules/.bin/vite",
+        "dev",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5191",
+    ],
+)
+
+search_build_binary(
+    name = "app",
+    chdir = "demo",
+    fixed_args = [
+        "node_modules/.bin/vite",
+        "build",
+    ],
+    out_dir = "dist",
+)

@@ -1,0 +1,13 @@
+{
+  "name": "demo",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "lit": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

@@ -1,0 +1,119 @@
+"""search-experience — AgentOS site-search product.
+
+Platform runtime (kernel, atlas, mc-core, catalog-compiler) is consumed from
+AgentOS GitHub releases via http_file. Guest services (searchd) are built via
+the AgentOS build graph in a sibling checkout and re-pinned here as digests.
+JS/TS uses vendored rules_bun for hermetic deps and live-workspace HMR.
+"""
+
+module(name = "search-experience", version = "0.1.0")
+
+bazel_dep(name = "rules_bun", version = "0.0.0")
+local_path_override(
+    module_name = "rules_bun",
+    path = "bazel/rules_bun",
+)
+
+bun = use_extension("@rules_bun//bun:extensions.bzl", "bun")
+bun.toolchain(version = "1.3.11")
+use_repo(bun, "bun")
+
+register_toolchains("@bun//:toolchain_def")
+
+bun_deps = use_extension("@rules_bun//bun:extensions.bzl", "bun_deps")
+bun_deps.install(
+    name = "js_deps",
+    bunfig = "//:bunfig.toml",
+    lock = "//:bun.lock",
+    package_json = "//:package.json",
+    workspace_files = [
+        "//demo:package.json",
+    ],
+)
+use_repo(bun_deps, "js_deps")
+
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+# ---------------------------------------------------------------------------
+# AgentOS platform runtime — release pins (train A)
+# Bump AGENTOS_TAG + digests together; product release notes the platform tag.
+# ---------------------------------------------------------------------------
+_AGENTOS_TAG = "v0.5.0"
+_AGENTOS_BASE = "https://github.com/NarendraPatwardhan/agent-os/releases/download/" + _AGENTOS_TAG
+
+http_file(
+    name = "agentos_kernel",
+    downloaded_file_path = "kernel.wasm",
+    sha256 = "ab20b493f4d2fdd90a4e40b005d495d3cb15af4121167ce977a719beffe77008",
+    urls = [_AGENTOS_BASE + "/kernel.wasm"],
+)
+
+http_file(
+    name = "agentos_atlas",
+    downloaded_file_path = "atlas.tar",
+    sha256 = "3e970d471ef0434fca540badf757858686fa011b62416b310baffd7f77215d03",
+    urls = [_AGENTOS_BASE + "/atlas.tar"],
+)
+
+http_file(
+    name = "mc_core_mjs",
+    downloaded_file_path = "mc-core.mjs",
+    sha256 = "cd6e07185c79a642eadcaa29f477ebc273b5852395f957443e5cff736e96aa42",
+    urls = [_AGENTOS_BASE + "/mc-core.mjs"],
+)
+
+http_file(
+    name = "agentos_catalog_compiler",
+    downloaded_file_path = "catalog-compiler.wasm",
+    sha256 = "90205ce7e67767b395f221b01fd18c9fab45d95a88eb512ec1566887ad873de4",
+    urls = [_AGENTOS_BASE + "/catalog-compiler.wasm"],
+)
+
+# ---------------------------------------------------------------------------
+# Product-owned embedding model + ONNX Runtime (not AgentOS platform assets)
+# ---------------------------------------------------------------------------
+http_file(
+    name = "mxbai_embed_xsmall_v1_uint8",
+    downloaded_file_path = "model.onnx",
+    sha256 = "b423ee3c9b2926f859fedb977bfadbe7c6dd0108c3bb623a422f71c681708a18",
+    urls = ["https://huggingface.co/mixedbread-ai/mxbai-embed-xsmall-v1/resolve/e6ac24e5d6efb8782b59de1647b3ececb4ece94e/onnx/model_uint8.onnx"],
+)
+
+http_file(
+    name = "mxbai_embed_xsmall_v1_tokenizer",
+    downloaded_file_path = "tokenizer.json",
+    sha256 = "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0",
+    urls = ["https://huggingface.co/mixedbread-ai/mxbai-embed-xsmall-v1/resolve/e6ac24e5d6efb8782b59de1647b3ececb4ece94e/tokenizer.json"],
+)
+
+http_file(
+    name = "mxbai_embed_xsmall_v1_tokenizer_config",
+    downloaded_file_path = "tokenizer_config.json",
+    sha256 = "bd2e06a5b20fd1b13ca988bedc8763d332d242381b4fbc98f8fead4524158f79",
+    urls = ["https://huggingface.co/mixedbread-ai/mxbai-embed-xsmall-v1/resolve/e6ac24e5d6efb8782b59de1647b3ececb4ece94e/tokenizer_config.json"],
+)
+
+http_file(
+    name = "mxbai_embed_xsmall_v1_config",
+    downloaded_file_path = "config.json",
+    sha256 = "55f755d351fd04b0fef37760e07e195eb47e15f7aed6fc42d9be3dde3d38bca4",
+    urls = ["https://huggingface.co/mixedbread-ai/mxbai-embed-xsmall-v1/resolve/e6ac24e5d6efb8782b59de1647b3ececb4ece94e/config.json"],
+)
+
+http_file(
+    name = "agentos_search_ort_runtime_js",
+    downloaded_file_path = "ort-wasm-simd-threaded.jsep.mjs",
+    sha256 = "08fb86ec433c78bfb032c5d84a68b8e8e5a8d81268fa39e24314179a5767a5b9",
+    urls = ["https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/ort-wasm-simd-threaded.jsep.mjs"],
+)
+
+http_file(
+    name = "agentos_search_ort_runtime_wasm",
+    downloaded_file_path = "ort-wasm-simd-threaded.jsep.wasm",
+    sha256 = "c46655e8a94afc45338d4cb2b840475f88e5012d524509916e505079c00bfa39",
+    urls = ["https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/ort-wasm-simd-threaded.jsep.wasm"],
+)

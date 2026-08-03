@@ -1,0 +1,12 @@
+load(":toolchains.bzl", "bun_toolchain")
+
+package(default_visibility = ["//visibility:public"])
+
+toolchain_type(name = "toolchain_type")
+
+exports_files([
+    "defs.bzl",
+    "extensions.bzl",
+    "providers.bzl",
+    "toolchains.bzl",
+])

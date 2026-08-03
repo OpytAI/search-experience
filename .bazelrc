@@ -1,0 +1,10 @@
+# search-experience — product module (AgentOS via release pins + rules_bun)
+
+common --enable_bzlmod
+common --enable_workspace=false
+common --enable_runfiles
+common --incompatible_strict_action_env
+common --lockfile_mode=update
+common --registry=https://bcr.bazel.build/
+
+test --test_output=errors

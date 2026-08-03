@@ -1,0 +1,16 @@
+load("//bazel:search.bzl", "search_command_test")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "sources",
+    srcs = glob(["**"], exclude = ["BUILD.bazel"], allow_empty = True),
+)
+
+search_command_test(
+    name = "logic_test",
+    chdir = ".",
+    fixed_args = [
+        "test/logic.test.ts",
+    ],
+)

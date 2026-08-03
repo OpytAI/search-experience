@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
+    "strict": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmitOnError": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "rootDir": ".",
+    "outDir": "dist-tsc",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

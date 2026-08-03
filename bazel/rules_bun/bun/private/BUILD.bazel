@@ -1,0 +1,8 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "bun_action_runner.sh",
+    "bun_runfiles_launcher.sh.tpl",
+    "bun_runfiles_runner.sh",
+    "bun_update_lock.sh.tpl",
+])

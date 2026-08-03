@@ -1,0 +1,10 @@
+load("@rules_bun//bun:defs.bzl", "bun_update_lock")
+
+package(default_visibility = ["//visibility:public"])
+
+bun_update_lock(name = "update_lock")
+
+filegroup(
+    name = "sources",
+    srcs = [],
+)
