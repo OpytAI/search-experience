@@ -1,4 +1,4 @@
-import { McSiteSearch } from "./elements/mc-site-search.js";
+import { McSiteSearch } from "./ui/mc-site-search/element.js";
 
 export function defineSearchElements(): typeof McSiteSearch {
   if (!customElements.get("mc-site-search")) {

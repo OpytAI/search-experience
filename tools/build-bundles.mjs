@@ -12,9 +12,9 @@ await mkdir(outDir, { recursive: true });
 // Only ship bundles that appear in //:release (no unused element-only entry).
 const entries = [
   ["src/index.ts", "agentos-search.mjs", "browser"],
-  ["src/runtime-worker.ts", "agentos-search-runtime.mjs", "browser"],
+  ["src/worker/main.ts", "agentos-search-runtime.mjs", "browser"],
   ["src/service-worker.ts", "agentos-search-sw.mjs", "browser"],
-  ["src/embedding.ts", "agentos-search-embed.mjs", "browser"],
+  ["src/embedding/mixedbread.ts", "agentos-search-embed.mjs", "browser"],
 ];
 
 function run(cmd, args) {

@@ -4,8 +4,8 @@
   "service": "searchd",
   "description": "Product-local resident search authority: crawl plan, schema, journals, FTS5/VANN, fusion, generations.",
   "transport": {
-    "preferred": "vm.serviceCall(\"searchd\", requestBytes)",
-    "interim": "guest Luau authority at /opt/searchd/main.luau with identical JSON envelope"
+    "mode": "serviceCall",
+    "call": "vm.serviceCall(\"searchd\", requestBytes)"
   },
   "paths": {
     "activeIndex": "/var/searchd/index.db",

@@ -5,7 +5,7 @@ import {
   MIXEDBREAD_DIMENSIONS,
   type MixedbreadEmbedder,
   type MixedbreadEmbedderOptions,
-} from "../embedding-text.js";
+} from "../embedding/text.js";
 
 export type { MixedbreadEmbedderOptions, MixedbreadEmbedder };
 export { mixedbreadDocumentText, mixedbreadQueryText };

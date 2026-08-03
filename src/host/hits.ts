@@ -1,5 +1,5 @@
 import type { SearchdResponse } from "../protocol/searchd.js";
-import type { SearchItem } from "../search/types.js";
+import type { SearchItem } from "../ui/palette/types.js";
 import { sanitizeHttpUrl } from "../security/urls.js";
 
 /** Map searchd hits to palette items; filters non-http(s) and optional same-origin. */

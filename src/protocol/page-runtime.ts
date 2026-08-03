@@ -1,7 +1,7 @@
 /** Versioned page ↔ dedicated runtime worker protocol. */
 
 import type { BrowserCrawlDefinition, CrawlCollectionDescriptor } from "./collections.js";
-import type { SearchItem } from "../search/types.js";
+import type { SearchItem } from "../ui/palette/types.js";
 import { SEARCH_PROTOCOL_VERSION } from "./versions.js";
 
 export type { BrowserCrawlDefinition, CrawlCollectionDescriptor };

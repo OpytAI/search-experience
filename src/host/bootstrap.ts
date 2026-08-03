@@ -1,8 +1,8 @@
-import type { McSiteSearch } from "../elements/mc-site-search.js";
+import type { McSiteSearch } from "../ui/mc-site-search/element.js";
 import type { BrowserCrawlDefinition } from "../protocol/collections.js";
 import { validateManifest, type SearchExperienceManifest } from "../protocol/manifest.js";
 import { SEARCH_PROTOCOL_VERSION } from "../protocol/versions.js";
-import { SearchWorkerClient } from "./client.js";
+import { SearchWorkerClient } from "./worker-client.js";
 
 export interface SearchExperienceOptions {
   assetBase?: string | URL;

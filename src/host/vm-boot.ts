@@ -8,7 +8,7 @@ import {
   configureEmbedTool,
   type EmbedderFactory,
 } from "../host-tools/embed.js";
-import type { MixedbreadEmbedderOptions } from "../embedding-text.js";
+import type { MixedbreadEmbedderOptions } from "../embedding/text.js";
 import type { SnapshotCompatibility } from "../protocol/snapshot.js";
 
 export interface McCoreModule extends McToolModule {

@@ -11,7 +11,7 @@ import {
   MIXEDBREAD_DIMENSIONS,
   type MixedbreadEmbedder,
   type MixedbreadEmbedderOptions,
-} from "./embedding-text.js";
+} from "./text.js";
 
 export {
   MIXEDBREAD_MODEL_ID,
@@ -22,7 +22,7 @@ export {
   type EmbedderAsset,
   type MixedbreadEmbedderOptions,
   type MixedbreadEmbedder,
-} from "./embedding-text.js";
+} from "./text.js";
 
 function normalize(values: readonly number[]): Float32Array {
   let squared = 0;

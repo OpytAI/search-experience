@@ -2,14 +2,14 @@
  * Palette-facing pure logic: FTS/RRF oracles, registry, modes, recents, hits.
  */
 import { assert } from "./assert.ts";
-import { mixedbreadDocumentText, mixedbreadQueryText } from "../src/embedding-text.ts";
-import { buildFts5Query } from "../src/search/fts-oracle.ts";
-import { reciprocalRankFusion } from "../src/search/rrf-oracle.ts";
-import { parseSearchInput } from "../src/search/modes.ts";
-import { pruneRecents, recordRecent, deriveLiveRecents } from "../src/search/recents.ts";
-import { SearchCollectionRegistry } from "../src/search/registry.ts";
-import { hitsToItems } from "../src/runtime/hits.ts";
-import type { SearchCollection, SearchItem } from "../src/search/types.ts";
+import { mixedbreadDocumentText, mixedbreadQueryText } from "../src/embedding/text.ts";
+import { buildFts5Query } from "../src/oracles/fts.ts";
+import { reciprocalRankFusion } from "../src/oracles/rrf.ts";
+import { parseSearchInput } from "../src/ui/palette/modes.ts";
+import { pruneRecents, recordRecent, deriveLiveRecents } from "../src/ui/palette/recents.ts";
+import { SearchCollectionRegistry } from "../src/ui/palette/registry.ts";
+import { hitsToItems } from "../src/host/hits.ts";
+import type { SearchCollection, SearchItem } from "../src/ui/palette/types.ts";
 
 assert(mixedbreadDocumentText("Title", "H", "Body") === "Title\nH\nBody", "document text join");
 assert(mixedbreadQueryText("  hello   world ") === "hello world", "query normalize");

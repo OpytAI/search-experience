@@ -5,7 +5,7 @@ import type {
   RuntimeToPageMessage,
 } from "../protocol/page-runtime.js";
 import { SEARCH_PROTOCOL_VERSION } from "../protocol/versions.js";
-import type { SearchCollection, SearchContext, SearchItem } from "../search/types.js";
+import type { SearchCollection, SearchContext, SearchItem } from "../ui/palette/types.js";
 
 export class SearchWorkerClient {
   private readonly listeners = new Set<(message: RuntimeToPageMessage) => void>();

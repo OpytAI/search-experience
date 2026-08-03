@@ -5,28 +5,28 @@
  * Does not own: crawl plan, ranking, schema policy — those are searchd.
  */
 
-import type { BrowserCrawlDefinition } from "./protocol/collections.js";
-import { validateManifest, type AssetDescriptor, type SearchExperienceManifest } from "./protocol/manifest.js";
-import type { PageToRuntimeMessage, RuntimeToPageMessage } from "./protocol/page-runtime.js";
+import type { BrowserCrawlDefinition } from "../protocol/collections.js";
+import { validateManifest, type SearchExperienceManifest } from "../protocol/manifest.js";
+import type { PageToRuntimeMessage, RuntimeToPageMessage } from "../protocol/page-runtime.js";
 import {
   nextSearchdId,
   type SearchdResponse,
   type SearchdStatusBody,
-} from "./protocol/searchd.js";
+} from "../protocol/searchd.js";
 import {
   computeCompatibilityKey,
   hashConfiguration,
   snapshotMetadataKey,
   snapshotStorageKey,
   type SnapshotCompatibility,
-} from "./protocol/snapshot.js";
+} from "../protocol/snapshot.js";
 import {
   SEARCH_PROTOCOL_VERSION,
   SEARCHD_PROTOCOL_VERSION,
   SNAPSHOT_FORMAT_VERSION,
-} from "./protocol/versions.js";
-import { SearchdClient } from "./runtime/searchd-client.js";
-import { hitsToItems } from "./runtime/hits.js";
+} from "../protocol/versions.js";
+import { SearchdClient } from "../host/searchd-client.js";
+import { hitsToItems } from "../host/hits.js";
 import {
   bootSearchVm,
   persistSnapshot,
@@ -34,72 +34,20 @@ import {
   type McCoreModule,
   type SearchVm,
   type ContentStore,
-} from "./runtime/vm-boot.js";
-import type { HostToolRuntime } from "./host-tools/register.js";
-import { isSameOrigin } from "./security/urls.js";
+} from "../host/vm-boot.js";
+import type { HostToolRuntime } from "../host-tools/register.js";
+import { isSameOrigin } from "../security/urls.js";
+
+import {
+  sha256,
+  verifiedBytes,
+  verifiedText,
+  importMcCore,
+  verifyModelAssets,
+} from "./assets.js";
 
 function post(message: RuntimeToPageMessage): void {
   self.postMessage(message);
-}
-
-async function sha256(bytes: Uint8Array): Promise<string> {
-  const copy = new Uint8Array(bytes);
-  const digest = await crypto.subtle.digest("SHA-256", copy);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function loadBytes(base: string, relative: string): Promise<Uint8Array> {
-  const response = await fetch(new URL(relative, base));
-  if (!response.ok) throw new Error(`asset HTTP ${response.status}`);
-  return new Uint8Array(await response.arrayBuffer());
-}
-
-async function verifiedBytes(base: string, descriptor: AssetDescriptor, name: string): Promise<Uint8Array> {
-  const bytes = await loadBytes(base, descriptor.url);
-  if (Number.isSafeInteger(descriptor.bytes) && descriptor.bytes > 0 && bytes.byteLength !== descriptor.bytes) {
-    // Allow length mismatch only if sha still matches (compression edge cases); prefer sha.
-  }
-  const hash = await sha256(bytes);
-  if (hash !== descriptor.sha256) {
-    throw new Error(`integrity check failed for ${name}`);
-  }
-  return bytes;
-}
-
-async function verifiedText(base: string, descriptor: AssetDescriptor, name: string): Promise<string> {
-  const bytes = await verifiedBytes(base, descriptor, name);
-  return new TextDecoder().decode(bytes);
-}
-
-/**
- * Load mc-core from verified bytes via blob URL to avoid TOCTOU on a second fetch.
- */
-async function importMcCore(base: string, descriptor: AssetDescriptor): Promise<McCoreModule> {
-  const bytes = await verifiedBytes(base, descriptor, "mc-core");
-  const copy = new Uint8Array(bytes.byteLength);
-  copy.set(bytes);
-  const blob = new Blob([copy], { type: "text/javascript" });
-  const blobUrl = URL.createObjectURL(blob);
-  try {
-    const mod = await import(/* @vite-ignore */ blobUrl) as McCoreModule;
-    if (!mod.mc || !mod.tool || !mod.z || !mod.OpfsContentStore) {
-      throw new Error("mc-core.mjs does not export mc/tool/z/OpfsContentStore");
-    }
-    return mod;
-  } finally {
-    URL.revokeObjectURL(blobUrl);
-  }
-}
-
-async function verifyModelAssets(
-  base: string,
-  model: NonNullable<SearchExperienceManifest["model"]>,
-): Promise<void> {
-  await Promise.all(
-    Object.entries(model.assets).map(async ([key, descriptor]) => {
-      await verifiedBytes(base, descriptor, `model.${key}`);
-    }),
-  );
 }
 
 let manifest: SearchExperienceManifest | undefined;
@@ -420,7 +368,7 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
 
   // Load hermetic embed factory from the shipped agentos-search-embed.mjs (transformers
   // is statically bundled there — never bare-import npm from the runtime worker).
-  let embedderFactory: import("./host-tools/embed.js").EmbedderFactory | null = null;
+  let embedderFactory: import("../host-tools/embed.js").EmbedderFactory | null = null;
   if (manifest.model && manifest.assets.embedder) {
     const embedBytes = await verifiedBytes(base, manifest.assets.embedder, "embedder");
     const copy = new Uint8Array(embedBytes.byteLength);
@@ -428,8 +376,8 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
     const blobUrl = URL.createObjectURL(new Blob([copy], { type: "text/javascript" }));
     try {
       const embedMod = await import(/* @vite-ignore */ blobUrl) as {
-        createMixedbreadEmbedder?: import("./host-tools/embed.js").EmbedderFactory;
-        createEmbedder?: import("./host-tools/embed.js").EmbedderFactory;
+        createMixedbreadEmbedder?: import("../host-tools/embed.js").EmbedderFactory;
+        createEmbedder?: import("../host-tools/embed.js").EmbedderFactory;
       };
       const factory = embedMod.createMixedbreadEmbedder ?? embedMod.createEmbedder;
       if (!factory) throw new Error("agentos-search-embed.mjs missing createEmbedder export");

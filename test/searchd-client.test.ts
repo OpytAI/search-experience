@@ -6,8 +6,8 @@ import {
   encodeSearchdResponse,
   decodeSearchdRequest,
 } from "../src/protocol/searchd.ts";
-import { SearchdClient, defaultTimeoutFor } from "../src/runtime/searchd-client.ts";
-import { SearchWorkerClient } from "../src/runtime/client.ts";
+import { SearchdClient, defaultTimeoutFor } from "../src/host/searchd-client.ts";
+import { SearchWorkerClient } from "../src/host/worker-client.ts";
 
 assert(defaultTimeoutFor({ v: 1, op: "crawl_step", id: "c" }) >= 120_000, "crawl timeout");
 assert(defaultTimeoutFor({ v: 1, op: "query", id: "q", collectionId: "d", query: "x" }) <= 30_000, "query timeout");

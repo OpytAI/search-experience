@@ -61,7 +61,7 @@ function resolveTransformersWeb() {
   }
 }
 
-const isEmbedEntry = input.endsWith("embedding.ts") || output.endsWith("agentos-search-embed.mjs");
+const isEmbedEntry = input.endsWith("mixedbread.ts") || input.endsWith("embedding.ts") || output.endsWith("agentos-search-embed.mjs");
 
 const bundle = await rolldown({
   input,

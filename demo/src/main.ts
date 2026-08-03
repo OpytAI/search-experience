@@ -6,9 +6,9 @@
  * Loaded from home, docs, and blog so ⌘K / Ctrl+K works site-wide.
  */
 import "../../src/register.js";
-import type { McSiteSearch } from "../../src/elements/mc-site-search.js";
-import type { SearchCollection, SearchItem } from "../../src/search/types.js";
-import { bootstrapSearchExperience } from "../../src/runtime/bootstrap.js";
+import type { McSiteSearch } from "../../src/ui/mc-site-search/element.js";
+import type { SearchCollection, SearchItem } from "../../src/ui/palette/types.js";
+import { bootstrapSearchExperience } from "../../src/host/bootstrap.js";
 
 const fixtureItems: SearchItem[] = [
   {
@@ -135,5 +135,5 @@ void (async () => {
 
 declare global {
   // eslint-disable-next-line no-var
-  var AgentOSSearch: import("../../src/runtime/bootstrap.js").SearchExperienceOptions | undefined;
+  var AgentOSSearch: import("../../src/host/bootstrap.js").SearchExperienceOptions | undefined;
 }

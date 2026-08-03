@@ -57,7 +57,3 @@ SQL schema is product-owned: `../../index/schema.sql` (packaged into release).
 4. Promote requires non-empty candidate pages **and** chunks; copies candidate → index; wipes candidate.
 5. Next refresh uses a fresh `candidate.db`.
 
-## Note on `main.luau`
-
-`main.luau` may remain as historical reference. It is **not** shipped in
-`//:release` and is not a production or test path.

@@ -70,7 +70,7 @@ if (catalogPath && catalogPath !== "NONE") {
 if (searchdProtocolPath && searchdProtocolPath !== "NONE") {
   assets.searchdProtocol = await asset("searchd/searchd.protocol.json", searchdProtocolPath);
 }
-// Intentionally no searchdGuest / main.luau — serviceCall-only production path.
+// Guest authority is stamped /svc/searchd (serviceCall); no alternate guest source asset.
 if (mcCorePath && mcCorePath !== "NONE") {
   assets.mcCore = await asset("mc-core.mjs", mcCorePath);
 }

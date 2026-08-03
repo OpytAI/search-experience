@@ -1,12 +1,12 @@
 import "./register.js";
 
-import type { McSiteSearch } from "./elements/mc-site-search.js";
-import { bootstrapSearchExperience } from "./runtime/bootstrap.js";
+import type { McSiteSearch } from "./ui/mc-site-search/element.js";
+import { bootstrapSearchExperience } from "./host/bootstrap.js";
 
-export { McSiteSearch } from "./elements/mc-site-search.js";
+export { McSiteSearch } from "./ui/mc-site-search/element.js";
 export { defineSearchElements } from "./register.js";
-export { bootstrapSearchExperience } from "./runtime/bootstrap.js";
-export type { SearchExperience, SearchExperienceOptions } from "./runtime/bootstrap.js";
+export { bootstrapSearchExperience } from "./host/bootstrap.js";
+export type { SearchExperience, SearchExperienceOptions } from "./host/bootstrap.js";
 export type {
   SearchCollection,
   SearchContext,
@@ -14,7 +14,7 @@ export type {
   SearchMatch,
   SearchPreview,
   SearchSelectionDetail,
-} from "./search/types.js";
+} from "./ui/palette/types.js";
 export {
   SEARCH_PROTOCOL_VERSION,
   SEARCHD_PROTOCOL_VERSION,
@@ -34,7 +34,7 @@ function showBootstrapError(error: unknown): void {
 function startAutomaticBootstrap(): void {
   if (automaticBootstrap) return;
   const configured = (
-    globalThis as typeof globalThis & { AgentOSSearch?: import("./runtime/bootstrap.js").SearchExperienceOptions }
+    globalThis as typeof globalThis & { AgentOSSearch?: import("./host/bootstrap.js").SearchExperienceOptions }
   ).AgentOSSearch;
   automaticBootstrap = bootstrapSearchExperience(configured).catch(showBootstrapError);
 }

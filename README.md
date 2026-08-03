@@ -415,21 +415,25 @@ startup --output_user_root=/mnt/workspace/search-experience-bazel
 search-experience/
 ├── MODULE.bazel                 # agent-os git_override, hermetic_cc, rules_bun, model http_files
 ├── BUILD.bazel                  # //:check, //:release, bundles, manifest, runtime assets
-├── src/                         # host product (TypeScript)
-│   ├── protocol/                # contracts: page↔worker, searchd, host-tools, snapshot, manifest
-│   ├── host-tools/              # fetch / extract / embed only
-│   ├── runtime/                 # bootstrap, worker client, VM boot, SearchdClient
-│   ├── elements/mc-site-search.ts
-│   ├── runtime-worker.ts        # module worker
-│   └── service-worker.ts        # distribution cache only
-├── guest/
-│   ├── searchd/                 # stamped /svc/searchd (Rust mc_rust_program)
-│   └── image/                   # search-atlas = base + sqlite + searchd
+├── src/
+│   ├── index.ts / register.ts   # package entry (auto-bootstrap)
+│   ├── protocol/                # pure wire contracts
+│   ├── host/                    # bootstrap, SearchdClient, VM boot, page↔worker client
+│   ├── worker/                  # runtime worker entry + asset integrity
+│   ├── host-tools/              # fetch / extract / embed (effects only)
+│   ├── ui/mc-site-search/       # palette element + styles
+│   ├── ui/palette/              # modes, recents, registry, types
+│   ├── embedding/               # Mixedbread + text helpers (embed bundle entry)
+│   ├── oracles/                 # FTS/RRF test oracles (not production authority)
+│   ├── security/
+│   └── service-worker.ts
+├── guest/searchd/src/           # modular Rust: paths, state, svc, handlers, …
+├── guest/image/                 # search-atlas
 ├── index/schema.sql
-├── demo/                        # Vite demo site
-├── test/
-├── tools/                       # bundles, manifest, lock update
-└── third_party/agent-os/        # patches on the git-pinned module
+├── demo/
+├── test/                        # protocol, host-tools, search-ui, searchd-client, contracts
+├── tools/
+└── third_party/agent-os/
 ```
 
 ---
@@ -507,8 +511,6 @@ bazel build //guest/searchd:searchd //guest/image:search_atlas
 
 **Why base, not posix?** Searchd does not shell out to coreutils.  
 **Why not stock atlas?** Atlas pulls Luau; this product is serviceCall-only.
-
-`guest/searchd/main.luau` is historical reference only — **not** in `//:release`.
 
 ---
 
