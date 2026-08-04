@@ -6,7 +6,7 @@
   "type": "module",
   "workspaces": {
     "packages": [
-      "demo"
+      "docs"
     ],
     "catalog": {
       "lit": "^3.2.1",

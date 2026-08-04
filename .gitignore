@@ -35,3 +35,9 @@ coverage/
 .env.*
 !.env.example
 
+# Unpacked release package used by the docs site product path (local/CI only)
+/docs/public/agentos-search/
+
+# Publisher / browser-e2e warm snapshot output (local only)
+/warm/
+

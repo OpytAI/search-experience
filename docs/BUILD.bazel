@@ -16,17 +16,17 @@ filegroup(
     ),
 )
 
-# Typecheck demo + product sources from the repo root so root node_modules
-# (lit, etc.) resolve for files under src/ imported by the demo.
+# Typecheck docs + product sources from the repo root so root node_modules
+# (lit, etc.) resolve for files under src/ imported by the docs site.
 search_typecheck(
     name = "typecheck",
     chdir = ".",
-    tsconfig = "demo/tsconfig.json",
+    tsconfig = "docs/tsconfig.json",
 )
 
 search_dev_binary(
     name = "dev",
-    chdir = "demo",
+    chdir = "docs",
     fixed_args = [
         "node_modules/.bin/vite",
         "dev",
@@ -39,7 +39,7 @@ search_dev_binary(
 
 search_build_binary(
     name = "app",
-    chdir = "demo",
+    chdir = "docs",
     fixed_args = [
         "node_modules/.bin/vite",
         "build",

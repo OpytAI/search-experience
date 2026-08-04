@@ -15,8 +15,8 @@
         "typescript": "catalog:",
       },
     },
-    "demo": {
-      "name": "demo",
+    "docs": {
+      "name": "docs",
       "dependencies": {
         "lit": "catalog:",
       },
@@ -317,7 +317,7 @@
 
     "degenerator": ["degenerator@5.0.1", "", { "dependencies": { "ast-types": "^0.13.4", "escodegen": "^2.1.0", "esprima": "^4.0.1" } }, "sha512-TllpMR/t0M5sqCXfj85i4XaAzxmS5tVA16dqvdkMwGmzI+dXLXnw3J+3Vdv7VKw+ThlTMboK6i9rnZ6Nntj5CQ=="],
 
-    "demo": ["demo@workspace:demo"],
+    "docs": ["docs@workspace:docs"],
 
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 

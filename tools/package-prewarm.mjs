@@ -10,7 +10,7 @@
  *
  * Usage:
  *   bun tools/package-prewarm.mjs \
- *     --release-dir=demo/public/agentos-search \
+ *     --release-dir=docs/public/agentos-search \
  *     --snapshot=./warm/search.snapshot \
  *     --metadata=./warm/search.snapshot.metadata.json
  *

@@ -72,7 +72,7 @@ bun_deps.install(
     lock = "//:bun.lock",
     package_json = "//:package.json",
     workspace_files = [
-        "//demo:package.json",
+        "//docs:package.json",
     ],
 )
 use_repo(bun_deps, "js_deps")

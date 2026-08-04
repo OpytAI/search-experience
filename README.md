@@ -1,4 +1,6 @@
 <div align="center">
+  <img src="./docs/public/logo.svg" alt="AgentOS site search" width="72" height="72">
+
   <h1>AgentOS site search</h1>
 
   <p><strong>Drop-in search for your site — no server needed.</strong></p>
@@ -22,6 +24,10 @@
     <a href="#hosting-mime-and-csp">Hosting</a> ·
     <a href="#for-developers">Developers</a> ·
     <a href="#system-guide">System guide</a>
+  </p>
+
+  <p>
+    <img src="./docs/public/hero.png" alt="AgentOS site search palette" width="720">
   </p>
 </div>
 
@@ -283,7 +289,7 @@ This repository is the **product** that builds and ships AgentOS site search. It
 ```sh
 bazel run //tools/deps:update_lock   # after package.json changes
 bazel test //:check                  # typecheck + unit smoke
-bazel run //demo:dev                 # http://127.0.0.1:5191
+bazel run //docs:dev                 # http://127.0.0.1:5191
 bazel build //:release               # bazel-bin/release.tar
 ```
 
@@ -305,7 +311,7 @@ search-experience/
 ├── guest/searchd/            # Rust /svc/searchd
 ├── guest/image/              # search-atlas definition
 ├── index/schema.sql
-├── demo/                     # Vite demo site
+├── docs/                     # Vite docs site
 ├── test/
 ├── tools/                    # browser e2e, prewarm, packaging helpers
 └── third_party/agent-os/     # patches applied to the pin
@@ -335,28 +341,28 @@ Authority is split cleanly:
 
 Queries always read `/var/searchd/index.db`. A cold first index writes `index.db` directly. A refresh rebuilds `/var/searchd/candidate.db`, then promote copies a non-empty candidate (pages **and** chunks ≥ 1) over the active index and clears the candidate. Incomplete candidates are discarded.
 
-### Demo, browser E2E, and prewarm
+### Docs site, browser E2E, and prewarm
 
-`bazel run //demo:dev` alone runs UI fixtures without guest assets — useful for palette work, not for the unpack-and-script-tag product path.
+`bazel run //docs:dev` alone runs UI fixtures without guest assets — useful for palette work, not for the unpack-and-script-tag product path.
 
-Full product path against the demo site:
+Full product path against the docs site:
 
 ```sh
 bazel build //:release
-tar -xf bazel-bin/release.tar -C demo/public
-bazel run //demo:dev
+tar -xf bazel-bin/release.tar -C docs/public
+bazel run //docs:dev
 ```
 
 Hermetic unit tests are not browser E2E. After a release is unpacked, run system Chromium against the real package (`CHROMIUM_PATH` or `/usr/bin/chromium`):
 
 ```sh
 bun tools/browser-e2e.mjs \
-  --release-dir=demo/public/agentos-search \
+  --release-dir=docs/public/agentos-search \
   --export-snapshot \
   --out=./warm
 ```
 
-That boots kernel + search-atlas, crawls the demo docs/blog fixtures, asserts non-empty hits, and with `--export-snapshot` writes a gzip-encoded full MCSN.
+That boots kernel + search-atlas, crawls the docs site docs/blog fixtures, asserts non-empty hits, and with `--export-snapshot` writes a gzip-encoded full MCSN.
 
 The publisher CLI can plan without a guest (`bun src/publisher/cli.ts --origin=https://example.com --out=./warm`) or capture for real (`--capture --release-dir=…`). Capture always writes gzip MCSN (`meta.encoding: "gzip"`; `snapshotSha256` digests those gzip bytes).
 
@@ -364,7 +370,7 @@ The publisher CLI can plan without a guest (`bun src/publisher/cli.ts --origin=h
 
 ```sh
 bun tools/package-prewarm.mjs \
-  --release-dir=demo/public/agentos-search \
+  --release-dir=docs/public/agentos-search \
   --snapshot=./warm/search.snapshot \
   --metadata=./warm/search.snapshot.metadata.json
 ```
@@ -404,4 +410,4 @@ Do not reintroduce a Luau production transport, prebuilt AgentOS asset pins as t
 2. Gate every change with `bazel test //:check`.
 3. Guest, protocol, or schema changes need a rebuild of searchd and search-atlas; expect snapshot key churn.
 4. AgentOS bumps need a patch re-check and a root `hermetic_cc` sanity pass.
-5. Packaging work: build `//:release`, unpack into `demo/public`, run `//demo:dev`, and use the browser E2E path when the change touches boot, crawl, or restore.
+5. Packaging work: build `//:release`, unpack into `docs/public`, run `//docs:dev`, and use the browser E2E path when the change touches boot, crawl, or restore.

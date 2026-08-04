@@ -412,7 +412,7 @@
     "@@rules_bun+//bun:extensions.bzl%bun_deps": {
       "general": {
         "bzlTransitiveDigest": "z/s8NCdyFGNiZ8Cm4EnOsNC+xU/4uCVKZfFghBMu9TU=",
-        "usagesDigest": "HZYAtVtdpQDi8ZkOYW34I7+1D5ZqVM4mxEzxKkO/MgY=",
+        "usagesDigest": "JWupi1QP+MGofL4SYX+7nFnqNi5toNNA7ydfIE7vJU4=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -428,7 +428,7 @@
               "package_json": "@@//:package.json",
               "trusted_dependencies": [],
               "workspace_files": [
-                "@@//demo:package.json"
+                "@@//docs:package.json"
               ]
             }
           }

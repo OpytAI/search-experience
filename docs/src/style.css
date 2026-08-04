@@ -1,36 +1,36 @@
 :root {
   color-scheme: light dark;
-  --demo-bg: #f4efe6;
-  --demo-bg-accent: #ebe3d4;
-  --demo-surface: #fffcf7;
-  --demo-ink: #1c1916;
-  --demo-muted: #5c554c;
-  --demo-faint: #8a8278;
-  --demo-border: #e0d6c6;
-  --demo-accent: #c2410c;
-  --demo-accent-soft: #ffedd5;
-  --demo-shadow: 0 18px 50px rgb(40 28 12 / 10%);
-  --demo-radius: 18px;
+  --docs-bg: #f4efe6;
+  --docs-bg-accent: #ebe3d4;
+  --docs-surface: #fffcf7;
+  --docs-ink: #1c1916;
+  --docs-muted: #5c554c;
+  --docs-faint: #8a8278;
+  --docs-border: #e0d6c6;
+  --docs-accent: #c2410c;
+  --docs-accent-soft: #ffedd5;
+  --docs-shadow: 0 18px 50px rgb(40 28 12 / 10%);
+  --docs-radius: 18px;
   --font-sans: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   font-family: var(--font-sans);
   line-height: 1.55;
-  background: var(--demo-bg);
-  color: var(--demo-ink);
+  background: var(--docs-bg);
+  color: var(--docs-ink);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --demo-bg: #121215;
-    --demo-bg-accent: #1a1a20;
-    --demo-surface: #1c1c22;
-    --demo-ink: #f4f2ef;
-    --demo-muted: #b7b3ab;
-    --demo-faint: #8f8a82;
-    --demo-border: #33333c;
-    --demo-accent: #fb923c;
-    --demo-accent-soft: #3b2414;
-    --demo-shadow: 0 18px 50px rgb(0 0 0 / 35%);
+    --docs-bg: #121215;
+    --docs-bg-accent: #1a1a20;
+    --docs-surface: #1c1c22;
+    --docs-ink: #f4f2ef;
+    --docs-muted: #b7b3ab;
+    --docs-faint: #8f8a82;
+    --docs-border: #33333c;
+    --docs-accent: #fb923c;
+    --docs-accent-soft: #3b2414;
+    --docs-shadow: 0 18px 50px rgb(0 0 0 / 35%);
   }
 }
 
@@ -48,14 +48,14 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(1200px 500px at 10% -10%, color-mix(in srgb, var(--demo-accent) 12%, transparent), transparent 55%),
-    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--demo-bg-accent) 80%, transparent), transparent 50%),
-    var(--demo-bg);
-  color: var(--demo-ink);
+    radial-gradient(1200px 500px at 10% -10%, color-mix(in srgb, var(--docs-accent) 12%, transparent), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--docs-bg-accent) 80%, transparent), transparent 50%),
+    var(--docs-bg);
+  color: var(--docs-ink);
 }
 
 a {
-  color: var(--demo-accent);
+  color: var(--docs-accent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.18em;
 }
@@ -75,7 +75,7 @@ kbd {
   padding: 0.08rem 0.4rem;
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
   border-radius: 5px;
-  background: color-mix(in srgb, var(--demo-surface) 80%, var(--demo-bg-accent));
+  background: color-mix(in srgb, var(--docs-surface) 80%, var(--docs-bg-accent));
   font-size: 0.82em;
   font-weight: 600;
   line-height: 1.3;
@@ -84,7 +84,7 @@ kbd {
 code {
   padding: 0.1em 0.35em;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--demo-bg-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--docs-bg-accent) 70%, transparent);
 }
 
 /* ── site chrome ─────────────────────────────────────────── */
@@ -98,8 +98,8 @@ code {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem clamp(1rem, 3vw, 2rem);
-  background: color-mix(in srgb, var(--demo-surface) 88%, transparent);
-  border-bottom: 1px solid var(--demo-border);
+  background: color-mix(in srgb, var(--docs-surface) 88%, transparent);
+  border-bottom: 1px solid var(--docs-border);
   backdrop-filter: blur(12px);
 }
 
@@ -115,19 +115,16 @@ code {
 
 .brand:hover {
   text-decoration: none;
-  color: var(--demo-accent);
+  color: var(--docs-accent);
 }
 
-.brand-mark {
-  display: grid;
-  width: 1.7rem;
-  height: 1.7rem;
-  place-items: center;
-  border-radius: 0.55rem;
-  background: linear-gradient(145deg, var(--demo-accent), color-mix(in srgb, var(--demo-accent) 40%, #7c2d12));
-  color: #fff7ed;
-  font-size: 0.85rem;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--demo-accent) 35%, transparent);
+.brand-logo {
+  display: block;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.45rem;
+  object-fit: contain;
+  flex: none;
 }
 
 .brand-text {
@@ -137,7 +134,7 @@ code {
 }
 
 .brand-text small {
-  color: var(--demo-faint);
+  color: var(--docs-faint);
   font-size: 0.68rem;
   font-weight: 650;
   letter-spacing: 0.08em;
@@ -152,7 +149,7 @@ code {
 }
 
 .site-nav a {
-  color: var(--demo-muted);
+  color: var(--docs-muted);
   text-decoration: none;
   font-size: 0.92rem;
   font-weight: 600;
@@ -162,8 +159,8 @@ code {
 
 .site-nav a:hover,
 .site-nav a[aria-current="page"] {
-  color: var(--demo-ink);
-  background: color-mix(in srgb, var(--demo-bg-accent) 70%, transparent);
+  color: var(--docs-ink);
+  background: color-mix(in srgb, var(--docs-bg-accent) 70%, transparent);
   text-decoration: none;
 }
 
@@ -180,16 +177,29 @@ code {
 .hero {
   margin-bottom: 2rem;
   padding: clamp(1.5rem, 3vw, 2.25rem);
-  background: var(--demo-surface);
-  border: 1px solid var(--demo-border);
-  border-radius: var(--demo-radius);
-  box-shadow: var(--demo-shadow);
+  background: var(--docs-surface);
+  border: 1px solid var(--docs-border);
+  border-radius: var(--docs-radius);
+  box-shadow: var(--docs-shadow);
+}
+
+.hero-visual {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 0 1.25rem;
+  border-radius: calc(var(--docs-radius) - 6px);
+  border: 1px solid var(--docs-border);
+  object-fit: cover;
+  aspect-ratio: 3 / 2;
+  background: var(--docs-bg-accent);
 }
 
 .hero .eyebrow,
 .page-meta .eyebrow {
   margin: 0 0 0.65rem;
-  color: var(--demo-accent);
+  color: var(--docs-accent);
   font-size: 0.72rem;
   font-weight: 750;
   letter-spacing: 0.1em;
@@ -210,7 +220,7 @@ code {
 .article .lead {
   margin: 0;
   max-width: 40rem;
-  color: var(--demo-muted);
+  color: var(--docs-muted);
   font-size: 1.05rem;
 }
 
@@ -224,8 +234,8 @@ code {
 .card {
   display: block;
   padding: 1.15rem 1.2rem;
-  background: var(--demo-surface);
-  border: 1px solid var(--demo-border);
+  background: var(--docs-surface);
+  border: 1px solid var(--docs-border);
   border-radius: 14px;
   color: inherit;
   text-decoration: none;
@@ -235,7 +245,7 @@ code {
 
 .card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--demo-accent) 35%, var(--demo-border));
+  border-color: color-mix(in srgb, var(--docs-accent) 35%, var(--docs-border));
   box-shadow: 0 14px 32px rgb(40 28 12 / 10%);
   text-decoration: none;
   color: inherit;
@@ -249,7 +259,7 @@ code {
 
 .card p {
   margin: 0;
-  color: var(--demo-muted);
+  color: var(--docs-muted);
   font-size: 0.92rem;
 }
 
@@ -258,8 +268,8 @@ code {
   margin-bottom: 0.55rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: var(--demo-accent-soft);
-  color: var(--demo-accent);
+  background: var(--docs-accent-soft);
+  color: var(--docs-accent);
   font-size: 0.7rem;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -274,22 +284,22 @@ code {
   align-items: center;
   gap: 0.5rem 1rem;
   margin-bottom: 1rem;
-  color: var(--demo-faint);
+  color: var(--docs-faint);
   font-size: 0.88rem;
 }
 
 .article {
   padding: clamp(1.4rem, 3vw, 2.1rem);
-  background: var(--demo-surface);
-  border: 1px solid var(--demo-border);
-  border-radius: var(--demo-radius);
-  box-shadow: var(--demo-shadow);
+  background: var(--docs-surface);
+  border: 1px solid var(--docs-border);
+  border-radius: var(--docs-radius);
+  box-shadow: var(--docs-shadow);
 }
 
 .article .lead {
   margin-bottom: 1.35rem;
   padding-bottom: 1.15rem;
-  border-bottom: 1px solid var(--demo-border);
+  border-bottom: 1px solid var(--docs-border);
 }
 
 .article h2 {
@@ -300,7 +310,7 @@ code {
 
 .article p,
 .article li {
-  color: var(--demo-muted);
+  color: var(--docs-muted);
 }
 
 .article p {
@@ -317,16 +327,16 @@ code {
 }
 
 .article strong {
-  color: var(--demo-ink);
+  color: var(--docs-ink);
 }
 
 .callout {
   margin: 1.25rem 0;
   padding: 0.95rem 1.05rem;
-  border-left: 3px solid var(--demo-accent);
+  border-left: 3px solid var(--docs-accent);
   border-radius: 0 12px 12px 0;
-  background: color-mix(in srgb, var(--demo-accent-soft) 70%, var(--demo-surface));
-  color: var(--demo-ink);
+  background: color-mix(in srgb, var(--docs-accent-soft) 70%, var(--docs-surface));
+  color: var(--docs-ink);
   font-size: 0.95rem;
 }
 
@@ -339,13 +349,13 @@ code {
   width: min(52rem, calc(100% - 2rem));
   margin: 0 auto 2rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--demo-border);
-  color: var(--demo-faint);
+  border-top: 1px solid var(--docs-border);
+  color: var(--docs-faint);
   font-size: 0.85rem;
 }
 
 .site-footer a {
-  color: var(--demo-muted);
+  color: var(--docs-muted);
 }
 
 @media (max-width: 720px) {

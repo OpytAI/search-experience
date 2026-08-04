@@ -6,7 +6,7 @@
  * waits for ready, runs a crawl-backed query, and optionally exports MCSN.
  *
  * Usage:
- *   bun tools/browser-e2e.mjs --release-dir=demo/public/agentos-search
+ *   bun tools/browser-e2e.mjs --release-dir=docs/public/agentos-search
  *   bun tools/browser-e2e.mjs --release-dir=... --out=./warm --export-snapshot
  *
  * Exit 0 only when ready + non-empty search results are observed.
@@ -50,8 +50,8 @@ const port = Number(arg("port", "0")) || 0;
 if (!releaseDir) {
   console.error(
     "browser-e2e: missing release package.\n" +
-      "  Unpack first: bazel build //:release && tar -xf bazel-bin/release.tar -C demo/public\n" +
-      "  Then: bun tools/browser-e2e.mjs --release-dir=demo/public/agentos-search",
+      "  Unpack first: bazel build //:release && tar -xf bazel-bin/release.tar -C docs/public\n" +
+      "  Then: bun tools/browser-e2e.mjs --release-dir=docs/public/agentos-search",
   );
   process.exit(2);
 }

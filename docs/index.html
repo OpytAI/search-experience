@@ -3,16 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AgentOS Search Experience Demo</title>
+    <title>AgentOS Search Experience</title>
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <header class="site-header">
       <a class="brand" href="/">
-        <span class="brand-mark" aria-hidden="true">✦</span>
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
         <span class="brand-text">
           AgentOS Search
-          <small>demo site</small>
+          <small>docs site</small>
         </span>
       </a>
       <nav class="site-nav" aria-label="Primary">
@@ -20,12 +21,19 @@
         <a href="/docs/runtime.html">Docs</a>
         <a href="/blog/collections.html">Blog</a>
       </nav>
-      <mc-site-search placeholder="Search the demo site"></mc-site-search>
+      <mc-site-search placeholder="Search the docs site"></mc-site-search>
     </header>
 
     <main class="site-main">
       <section class="hero">
-        <p class="eyebrow">Product demo</p>
+        <img
+          class="hero-visual"
+          src="/hero.png"
+          width="1536"
+          height="1024"
+          alt="AgentOS site search command palette"
+        />
+        <p class="eyebrow">Docs site</p>
         <h1>Site search on AgentOS</h1>
         <p class="lead">
           Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> from any page to open the palette.
@@ -55,14 +63,14 @@
         </ul>
         <div class="callout">
           <strong>Local workflow</strong>
-          Run <code>bazel run //demo:dev</code>, then optionally unpack
-          <code>//:release</code> into <code>demo/public/</code> for the full product path.
+          Run <code>bazel run //docs:dev</code>, then optionally unpack
+          <code>//:release</code> into <code>docs/public/</code> for the full product path.
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      AgentOS search-experience demo ·
+      AgentOS search-experience docs ·
       <a href="/docs/runtime.html">Runtime</a> ·
       <a href="/blog/collections.html">Collections</a>
     </footer>

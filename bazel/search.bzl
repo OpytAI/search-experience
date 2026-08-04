@@ -4,7 +4,7 @@ load("@rules_bun//bun:defs.bzl", "bun_command_test", "bun_dev_binary", "bun_run_
 
 SEARCH_NODE_MODULES_BY_OWNER = {
     ".": "@js_deps//:node_modules",
-    "demo": "@js_deps//:demo_node_modules",
+    "docs": "@js_deps//:docs_node_modules",
 }
 
 SEARCH_SOURCE_TARGETS = ["//:all_sources"]
@@ -13,7 +13,7 @@ SEARCH_WORKSPACE_LINKS = {}
 
 SEARCH_WORKSPACE_ROOTS = [
     "src",
-    "demo",
+    "docs",
     "index",
     "tools",
     "test",

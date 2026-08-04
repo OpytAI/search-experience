@@ -12,7 +12,7 @@
  *
  * Usage:
  *   bun src/publisher/cli.ts --origin=https://example.com --out=./warm
- *   bun src/publisher/cli.ts --capture --release-dir=demo/public/agentos-search --out=./warm
+ *   bun src/publisher/cli.ts --capture --release-dir=docs/public/agentos-search --out=./warm
  *
  * Prewarmed release packaging: after capture, run tools/package-prewarm.mjs to inject
  * snapshot assets into the agentos-search/ layout and update the manifest digests.
@@ -577,7 +577,7 @@ if (isCliEntry()) {
     console.error(
       "usage:\n" +
         "  publisher --origin=https://site.example --out=./warm\n" +
-        "  publisher --capture --release-dir=demo/public/agentos-search --out=./warm",
+        "  publisher --capture --release-dir=docs/public/agentos-search --out=./warm",
     );
     process.exit(2);
   }

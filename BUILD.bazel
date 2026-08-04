@@ -30,7 +30,7 @@ filegroup(
     srcs = [
         ":root_sources",
         "//bazel:sources",
-        "//demo:sources",
+        "//docs:sources",
         "//guest:sources",
         "//index:sources",
         "//src:sources",
@@ -227,6 +227,6 @@ test_suite(
     tests = [
         ":typecheck",
         "//test:unit",
-        "//demo:typecheck",
+        "//docs:typecheck",
     ],
 )

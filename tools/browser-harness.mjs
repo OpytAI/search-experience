@@ -488,7 +488,7 @@ export function resolveReleaseDir(explicit) {
   const candidates = [
     explicit,
     process.env.AGENTOS_SEARCH_DIR,
-    join(ROOT, "demo/public/agentos-search"),
+    join(ROOT, "docs/public/agentos-search"),
     join(ROOT, "agentos-search"),
   ].filter(Boolean);
   for (const c of candidates) {

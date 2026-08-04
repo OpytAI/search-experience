@@ -1,5 +1,5 @@
 /**
- * Demo host — release-like product path on every page.
+ * Docs site host — release-like product path on every page.
  * Boots the real runtime worker against copied AgentOS assets when present;
  * otherwise falls back to static fixture collections for UI-only HMR.
  *
@@ -90,7 +90,7 @@ function ensureSearchElement(): McSiteSearch {
     else document.body.prepend(element);
   }
   element.showLauncher = true;
-  element.placeholder = "Search the demo site";
+  element.placeholder = "Search the docs site";
   return element;
 }
 
@@ -124,12 +124,12 @@ void (async () => {
       ],
     };
     await bootstrapSearchExperience(globalThis.AgentOSSearch);
-    console.info("[search-experience demo] product path ready");
+    console.info("[search-experience docs] product path ready");
   } catch {
     element.statusMessage = "";
-    element.phase = "demo";
+    element.phase = "docs";
     element.collections = fixtureCollections();
-    console.info("[search-experience demo] fixture collections (release assets not mounted)");
+    console.info("[search-experience docs] fixture collections (release assets not mounted)");
   }
 })();
 

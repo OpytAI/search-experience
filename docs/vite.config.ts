@@ -26,7 +26,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   resolve: {
-    // Resolve shared deps from demo node_modules when product sources live under ../src.
+    // Resolve shared deps from docs node_modules when product sources live under ../src.
     alias: {
       lit: pkg("lit"),
       "@search": resolve(root, "../src"),

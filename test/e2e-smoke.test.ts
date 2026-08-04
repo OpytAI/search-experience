@@ -142,5 +142,5 @@ try {
 }
 
 console.log(
-  "e2e-smoke.test.ts: ok (hermetic pipeline). Full browser acceptance: bun tools/browser-e2e.mjs --release-dir=demo/public/agentos-search",
+  "e2e-smoke.test.ts: ok (hermetic pipeline). Full browser acceptance: bun tools/browser-e2e.mjs --release-dir=docs/public/agentos-search",
 );
