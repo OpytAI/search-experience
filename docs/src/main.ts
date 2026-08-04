@@ -179,7 +179,15 @@ void (async () => {
         {
           id: "docs",
           label: "Documentation",
-          seeds: ["/docs/"],
+          // Real HTML seeds only — bare "/docs/" is a directory without index.html
+          // and nginx returns 403, so the crawl never discovers pages (empty results
+          // on production while local fixtures or different seed resolution still work).
+          seeds: [
+            "/docs/tutorials/index.html",
+            "/docs/how-to/index.html",
+            "/docs/reference/index.html",
+            "/docs/explanation/index.html",
+          ],
           includePathPrefixes: ["/docs/"],
           order: 10,
           maxPages: 80,
@@ -187,7 +195,7 @@ void (async () => {
         {
           id: "blog",
           label: "Blog",
-          seeds: ["/blog/"],
+          seeds: ["/blog/index.html"],
           includePathPrefixes: ["/blog/"],
           order: 20,
           maxPages: 20,
