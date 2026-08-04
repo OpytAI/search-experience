@@ -6,6 +6,11 @@
 #
 # Product package under /agentos-search/ is fetched from GitHub Releases
 # (latest by default) — no Bazel on the host.
+#
+# Do not publish host :80 here. Dokploy’s reverse proxy already owns 80/443 and
+# routes to this service on the compose network. Binding 0.0.0.0:80 fails with
+# “port is already allocated”. Local smoke: docker compose run/up still reaches
+# the container via the service name on port 80, or add a temporary ports mapping.
 
 services:
   docs:
@@ -14,6 +19,6 @@ services:
       dockerfile: deploy/Dockerfile
       args:
         RELEASE_BASE: https://github.com/OpytAI/search-experience/releases/latest/download
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     restart: unless-stopped
