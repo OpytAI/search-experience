@@ -29,7 +29,8 @@ RUN apt-get update \
   && rm -f /tmp/release.tar /tmp/SHA256SUMS
 
 WORKDIR /app/docs
-RUN bunx vite build
+# Bun runtime resolves package exports the way the monorepo expects (Node can fail on lit).
+RUN bun --bun ./node_modules/vite/bin/vite.js build
 
 FROM nginx:1.27-alpine AS runtime
 COPY deploy/nginx-docs.conf /etc/nginx/conf.d/default.conf

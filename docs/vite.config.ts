@@ -1,14 +1,42 @@
 import { defineConfig } from "vite";
 import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
+import { readdirSync, statSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 function pkg(name: string): string {
-  return dirname(require.resolve(`${name}/package.json`));
+  // Prefer package root; some packages (e.g. lit) do not export package.json via "exports".
+  try {
+    return dirname(require.resolve(`${name}/package.json`));
+  } catch {
+    return dirname(require.resolve(name));
+  }
 }
+
+/** HTML entries under docs/ (not public/) so Vite rewrites /src/* to hashed assets. */
+function collectHtml(dir: string): string[] {
+  const out: string[] = [];
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === "dist" || name === "public") continue;
+    const path = join(dir, name);
+    const st = statSync(path);
+    if (st.isDirectory()) out.push(...collectHtml(path));
+    else if (name.endsWith(".html")) out.push(path);
+  }
+  return out;
+}
+
+const htmlInputs = Object.fromEntries(
+  collectHtml(root).map((file) => {
+    const rel = relative(root, file).replaceAll("\\", "/");
+    // Stable rollup input names (paths as keys break on some platforms).
+    const name = rel.replace(/\.html$/, "").replaceAll("/", "__") || "index";
+    return [name, file];
+  }),
+);
 
 export default defineConfig({
   root,
@@ -24,6 +52,9 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: {
+      input: htmlInputs,
+    },
   },
   resolve: {
     // Live rules_bun stages source via symlinks; keep resolution on the stage
