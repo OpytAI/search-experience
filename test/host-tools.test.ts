@@ -22,6 +22,22 @@ assert(extracted.links.every((l) => l.startsWith("http")), "extract http only");
 assert(!extracted.links.some((l) => l.startsWith("javascript:")), "no javascript links");
 assert(extracted.canonicalUrl.includes("/docs/runtime.html"), "canonical");
 
+const preferH1 = runSearchExtract({
+  url: "https://example.com/",
+  html: `<!doctype html><html><head><title>AgentOS Search Experience Demo</title></head>
+    <body><main>
+      <p class="eyebrow">Product demo</p>
+      <h1>Site search on AgentOS</h1>
+      <p class="lead">Press Ctrl-K from any page to open the palette and search your site content in the browser.</p>
+    </main></body></html>`,
+});
+assert(preferH1.title === "Site search on AgentOS", "extract prefers H1 over site title");
+assert(
+  preferH1.description.includes("Press Ctrl-K"),
+  "extract description falls back to first substantial block",
+);
+assert(!preferH1.description.startsWith("Product demo"), "description skips short eyebrow");
+
 assert(sanitizeNavigationUrl("javascript:alert(1)", "https://example.com") === null, "block js nav");
 assert(sanitizeNavigationUrl("https://evil.example/", "https://example.com") === null, "block cross-origin nav");
 assert(sanitizeNavigationUrl("/docs/a", "https://example.com") === "https://example.com/docs/a", "relative nav");

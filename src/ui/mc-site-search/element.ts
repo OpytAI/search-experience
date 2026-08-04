@@ -52,6 +52,8 @@ export class McSiteSearch extends LitElement {
   private searchAbort?: AbortController;
   private generation = 0;
   private invoker: Element | null = null;
+  private layoutMql: MediaQueryList | null = null;
+  private viewportBound = false;
   private readonly recentCollection: SearchCollection = {
     id: "__recent",
     label: "Recent",
@@ -64,12 +66,22 @@ export class McSiteSearch extends LitElement {
     super.connectedCallback();
     this.registry.replaceAll(this.collections);
     this.recents = this.readRecents();
-    if (typeof window !== "undefined") window.addEventListener("keydown", this.onGlobalKeydown);
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", this.onGlobalKeydown);
+      this.layoutMql = window.matchMedia("(max-width: 680px)");
+      this.layoutMql.addEventListener("change", this.syncLayoutMode);
+      this.syncLayoutMode();
+    } else {
+      this.setAttribute("layout", "palette");
+    }
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.searchAbort?.abort();
+    this.unbindViewport();
+    this.layoutMql?.removeEventListener("change", this.syncLayoutMode);
+    this.layoutMql = null;
     if (this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.open) this.close();
     if (typeof window !== "undefined") window.removeEventListener("keydown", this.onGlobalKeydown);
   }
@@ -101,18 +113,54 @@ export class McSiteSearch extends LitElement {
     if (this.disabled) return;
     const dialog = this.renderRoot.querySelector("dialog");
     if (!dialog || dialog.open) return;
+    this.syncLayoutMode();
     this.invoker = typeof document === "undefined" ? null : document.activeElement;
+    this.bindViewport();
     dialog.showModal();
     this.opened = true;
     this.setAttribute("open", "");
     this.activeKey = "";
     await this.updateComplete;
-    this.renderRoot.querySelector<HTMLInputElement>("input")?.focus();
+    this.renderRoot.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
     await this.runSearch();
   }
 
   close(): void {
     this.renderRoot.querySelector("dialog")?.close();
+  }
+
+  private readonly syncLayoutMode = (): void => {
+    const sheet = this.layoutMql?.matches ?? false;
+    this.setAttribute("layout", sheet ? "sheet" : "palette");
+    if (this.opened) this.syncViewportMetrics();
+  };
+
+  private readonly syncViewportMetrics = (): void => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    const height = vv ? Math.max(1, Math.round(vv.height)) : Math.round(window.innerHeight);
+    const offsetTop = vv ? Math.max(0, Math.round(vv.offsetTop)) : 0;
+    this.style.setProperty("--mc-search-vvh", `${height}px`);
+    this.style.setProperty("--mc-search-vvt", `${offsetTop}px`);
+  };
+
+  private bindViewport(): void {
+    if (typeof window === "undefined" || this.viewportBound) return;
+    this.viewportBound = true;
+    this.syncViewportMetrics();
+    window.visualViewport?.addEventListener("resize", this.syncViewportMetrics);
+    window.visualViewport?.addEventListener("scroll", this.syncViewportMetrics);
+    window.addEventListener("resize", this.syncViewportMetrics);
+  }
+
+  private unbindViewport(): void {
+    if (typeof window === "undefined" || !this.viewportBound) return;
+    this.viewportBound = false;
+    window.visualViewport?.removeEventListener("resize", this.syncViewportMetrics);
+    window.visualViewport?.removeEventListener("scroll", this.syncViewportMetrics);
+    window.removeEventListener("resize", this.syncViewportMetrics);
+    this.style.removeProperty("--mc-search-vvh");
+    this.style.removeProperty("--mc-search-vvt");
   }
 
   private readonly onGlobalKeydown = (event: KeyboardEvent) => {
@@ -128,6 +176,7 @@ export class McSiteSearch extends LitElement {
   private onDialogClose(): void {
     this.opened = false;
     this.removeAttribute("open");
+    this.unbindViewport();
     this.searchAbort?.abort();
     this.resultStates = [];
     this.activeKey = "";
@@ -138,6 +187,10 @@ export class McSiteSearch extends LitElement {
     }
     if (this.invoker instanceof HTMLElement && this.invoker.isConnected) this.invoker.focus();
     this.invoker = null;
+  }
+
+  private renderCloseMark() {
+    return html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>`;
   }
 
   private onInput(event: Event): void {
@@ -369,7 +422,10 @@ export class McSiteSearch extends LitElement {
 
   private renderPreview() {
     const item = this.visibleItems().find((candidate) => optionKey(candidate) === this.activeKey);
-    if (!item) return html`<div class="eyebrow">Search</div><h2>Find anything</h2><p>Results from every available collection stay distinct and easy to scan.</p>`;
+    // Idle preview: complementary to the empty list (do not repeat placeholder / "search this site").
+    if (!item) {
+      return html`<div class="eyebrow">Preview</div><h2>Result details</h2><p>Highlight a hit to see title, summary, and link here.</p>`;
+    }
     const preview = item.preview;
     return html`
       <div class="eyebrow">${preview?.eyebrow ?? item.kind}</div>
@@ -402,7 +458,11 @@ export class McSiteSearch extends LitElement {
       && (this.phase === "error" || this.phase === "booting" || this.phase === "loading" || this.phase === "idle");
     if (blockingStatus) return html`<div class="state" part="error">${this.statusMessage}</div>`;
     if (!this.query.trim() && this.resultStates.length === 0) {
-      return html`<div class="state" part="empty"><span class="empty-mark" aria-hidden="true">${this.renderSearchMark()}</span><strong>Search this site</strong><span class="state-copy">${this.statusMessage && this.phase !== "ready" ? this.statusMessage : "Start typing to search every available collection."}</span></div>`;
+      // Placeholder already says "Search this site" — keep the empty body to one short line.
+      const copy = this.statusMessage && this.phase !== "ready"
+        ? this.statusMessage
+        : "Type to search";
+      return html`<div class="state" part="empty"><span class="empty-mark" aria-hidden="true">${this.renderSearchMark()}</span><span class="state-copy">${copy}</span></div>`;
     }
     if (this.query.trim() && this.resultStates.length === 0) {
       return html`<div class="state" part="empty"><span class="empty-mark" aria-hidden="true">${this.renderSearchMark()}</span><strong>No collections available</strong><span class="state-copy">${this.statusMessage || "The local search index is not ready yet."}</span></div>`;
@@ -435,7 +495,16 @@ export class McSiteSearch extends LitElement {
             @compositionend=${this.onInput}
             @keydown=${this.onInputKeydown}
           >
-          <kbd part="escape-key">Esc</kbd>
+          <span class="input-actions" part="input-actions">
+            <kbd part="escape-key">Esc</kbd>
+            <button
+              class="close-btn"
+              part="close"
+              type="button"
+              aria-label="Close search"
+              @click=${() => this.close()}
+            >${this.renderCloseMark()}</button>
+          </span>
         </div>
         <div class="body" part="body">
           <div class="list" part="list" id="mc-search-list" aria-label="Search results">${this.renderBody()}</div>

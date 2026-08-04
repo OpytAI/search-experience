@@ -2,6 +2,15 @@ import type { SearchdResponse } from "../protocol/searchd.js";
 import type { SearchItem } from "../ui/palette/types.js";
 import { sanitizeHttpUrl } from "../security/urls.js";
 
+function pathLabel(href: string): string {
+  try {
+    const path = new URL(href).pathname;
+    return path && path !== "/" ? path : new URL(href).host;
+  } catch {
+    return href;
+  }
+}
+
 /** Map searchd hits to palette items; filters non-http(s) and optional same-origin. */
 export function hitsToItems(
   hits: NonNullable<Extract<SearchdResponse, { ok: true }>["hits"]>,
@@ -17,13 +26,20 @@ export function hitsToItems(
         return [];
       }
     }
+    const path = pathLabel(href);
+    const heading = hit.heading?.trim() ?? "";
+    const snippet = hit.snippet?.trim() ?? "";
+    // Prefer section/snippet; fall back to path so mobile rows stay disambiguated.
+    const secondary = heading || snippet || path;
+    const description = snippet || heading || path;
     return [{
       id: hit.id,
       collectionId: hit.collectionId,
       kind: "page",
-      label: hit.title || href,
+      label: (hit.title?.trim() || path || href),
       title: hit.title,
-      secondary: hit.heading || hit.snippet,
+      secondary,
+      meta: secondary === path ? undefined : path,
       href,
       url: href,
       score: hit.score,
@@ -39,13 +55,13 @@ export function hitsToItems(
       },
       preview: {
         eyebrow: hit.collectionId,
-        title: hit.title,
-        description: hit.snippet || hit.heading,
+        title: hit.title || path,
+        description,
         url: href,
         kind: "page",
         facts: [
           { label: "URL", value: href },
-          ...(hit.heading ? [{ label: "Section", value: hit.heading }] : []),
+          ...(heading ? [{ label: "Section", value: heading }] : []),
         ],
       },
     } satisfies SearchItem];

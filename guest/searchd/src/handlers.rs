@@ -467,23 +467,37 @@ fn handle_crawl_step(req: &Json) -> Json {
             continue;
         }
 
-        // Index one page with a simple single chunk from description/title/blocks
+        // Index one page with a single chunk. Prefer description + substantial blocks first
+        // so snippets/secondary lines are not dominated by short "eyebrow" labels; still
+        // append short blocks so their tokens remain searchable.
         let body_text = {
-            let mut t = String::new();
+            let mut long_parts: Vec<String> = Vec::new();
+            let mut short_parts: Vec<String> = Vec::new();
+            if !description.is_empty() {
+                long_parts.push(description.clone());
+            }
             if let Some(Json::Arr(blocks)) = extracted.get("blocks") {
                 for b in blocks {
                     if let Some(tx) = crate::jsonx::j_get_str(b, "text") {
-                        if !t.is_empty() {
-                            t.push('\n');
+                        let t = tx.trim();
+                        if t.is_empty() {
+                            continue;
                         }
-                        t.push_str(tx);
+                        if t.chars().count() < 40 {
+                            short_parts.push(t.to_string());
+                        } else if !long_parts.iter().any(|p| p == t) {
+                            long_parts.push(t.to_string());
+                        }
                     }
                 }
             }
-            if t.is_empty() {
-                t = description.clone();
+            let mut parts = long_parts;
+            for s in short_parts {
+                if !parts.iter().any(|p| p == &s) {
+                    parts.push(s);
+                }
             }
-            t
+            parts.join("\n")
         };
         if body_text.is_empty() && title.is_empty() {
             continue;
@@ -724,9 +738,10 @@ fn lexical_search(collection_id: &str, fts: &str, top_k: usize) -> Vec<LexHit> {
     // Primary: FTS5 MATCH (prefix tokens from sql_safe::build_fts_match_query).
     let fts_sql = format!(
         "SELECT c.stable_id, c.collection_id, c.page_id, c.url, c.title, c.heading, c.body, \
-         substr(c.body, 1, 160) AS snippet \
+         COALESCE(NULLIF(trim(p.description), ''), substr(c.body, 1, 160)) AS snippet \
          FROM chunks_fts \
          JOIN chunks c ON c.id = chunks_fts.rowid \
+         LEFT JOIN pages p ON p.id = c.page_id \
          WHERE chunks_fts MATCH {} AND c.collection_id = {} \
          ORDER BY rank, c.id LIMIT {}",
         sql_safe::sql_quote_string(fts),
@@ -759,8 +774,9 @@ fn lexical_search(collection_id: &str, fts: &str, top_k: usize) -> Vec<LexHit> {
     let pattern = sql_safe::sql_quote_string(&format!("%{}%", like_token));
     let like_sql = format!(
         "SELECT c.stable_id, c.collection_id, c.page_id, c.url, c.title, c.heading, c.body, \
-         substr(c.body, 1, 160) AS snippet \
+         COALESCE(NULLIF(trim(p.description), ''), substr(c.body, 1, 160)) AS snippet \
          FROM chunks c \
+         LEFT JOIN pages p ON p.id = c.page_id \
          WHERE c.collection_id = {} AND (lower(c.title) LIKE lower({}) OR lower(c.body) LIKE lower({})) \
          ORDER BY c.id LIMIT {}",
         cid, pattern, pattern, top_k

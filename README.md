@@ -194,6 +194,8 @@ mc-site-search {
 
 Useful tokens also include `--mc-search-fg-secondary`, `--mc-search-elevated`, `--mc-search-substrate`, `--mc-search-active-bg`, `--mc-search-active-fg`, `--mc-search-radius`, `--mc-search-max-height`, and `--mc-search-backdrop`. The element ships sensible dark defaults via `prefers-color-scheme`.
 
+On viewports **≤680px** the dialog becomes a full-viewport **sheet** (`layout="sheet"`): width / max-height / top tokens apply to the desktop **palette** only. Sheet mode tracks `visualViewport` for the software keyboard and shows a close control (`::part(close)`).
+
 ---
 
 ## How it works

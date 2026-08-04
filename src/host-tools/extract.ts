@@ -100,20 +100,43 @@ function extractBlocks(fragment: string): ExtractedBlock[] {
   return blocks;
 }
 
+/** First H1 in main content — better list label than a site-wide document title. */
+function extractH1(fragment: string): string {
+  const m = fragment.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+  return m ? stripTags(m[1]) : "";
+}
+
+/** Prefer meta description; else first substantial body block (skip eyebrow-length lines). */
+function resolveDescription(metaDescription: string, blocks: readonly ExtractedBlock[]): string {
+  if (metaDescription.trim()) return metaDescription.trim();
+  for (const block of blocks) {
+    const text = block.text.trim();
+    if (text.length >= 40) return text;
+  }
+  return "";
+}
+
+function pathFallbackTitle(url: string): string {
+  try {
+    return new URL(url).pathname.split("/").filter(Boolean).pop() || new URL(url).hostname;
+  } catch {
+    return "untitled";
+  }
+}
+
 export function runSearchExtract(input: SearchExtractInput): SearchExtractOutput {
   const base = sanitizeHttpUrl(input.url) ?? input.url;
   const html = input.html ?? "";
   const cleaned = removeSkipped(html);
-  const titleMatch = cleaned.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
-  const title = stripTags(titleMatch?.[1] ?? "") ||
-    (() => {
-      try {
-        return new URL(base).pathname.split("/").filter(Boolean).pop() || new URL(base).hostname;
-      } catch {
-        return "untitled";
-      }
-    })();
-  const description = metaContent(cleaned, "description");
+  const main = extractMain(cleaned);
+  const blocks = extractBlocks(main);
+  const h1 = extractH1(main);
+  const docTitle = stripTags(
+    cleaned.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "",
+  );
+  // List labels should read as the page topic (H1), not the shared site <title>.
+  const title = h1 || docTitle || pathFallbackTitle(base);
+  const description = resolveDescription(metaContent(cleaned, "description"), blocks);
   const robots = metaContent(cleaned, "robots");
   const noindex = /(?:^|[,\s])noindex(?:$|[,\s])/i.test(robots);
   let canonicalUrl = base;
@@ -123,7 +146,6 @@ export function runSearchExtract(input: SearchExtractInput): SearchExtractOutput
     if (safe) canonicalUrl = safe;
   }
   const lang = attrMatch(cleaned, /<html\b[^>]*>/i, "lang");
-  const main = extractMain(cleaned);
   return {
     requestedUrl: base,
     canonicalUrl,
@@ -131,7 +153,7 @@ export function runSearchExtract(input: SearchExtractInput): SearchExtractOutput
     description,
     language: lang,
     noindex,
-    blocks: extractBlocks(main),
+    blocks,
     links: extractLinks(main, base),
   };
 }
