@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why collections exist</title>
-    <meta name="description" content="Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank." />
+    <title>Host tools</title>
+    <meta name="description" content="Effects the guest may call. Addresses are four-segment AgentOS tool ids." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -21,9 +21,9 @@
         <a href="/">Home</a>
         <a href="/docs/tutorials/index.html">Tutorials</a>
         <a href="/docs/how-to/index.html">How-to</a>
-        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/reference/index.html" aria-current="page">Reference</a>
         <a href="/docs/explanation/index.html">Explanation</a>
-        <a href="/blog/index.html" aria-current="page">Blog</a>
+        <a href="/blog/index.html">Blog</a>
       </nav>
       <mc-site-search placeholder="Search documentation"></mc-site-search>
     </header>
@@ -31,20 +31,21 @@
     <main class="site-main">
       <article class="article">
         <div class="page-meta">
-          <p class="eyebrow">Blog</p>
-          <span class="page-path">/blog/collections.html</span>
+          <p class="eyebrow">Reference</p>
+          <span class="page-path">/docs/reference/host-tools.html</span>
         </div>
-        <h1>Why collections exist</h1>
-        <p class="lead">Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank.</p>
+        <h1>Host tools</h1>
+        <p class="lead">Effects the guest may call. Addresses are four-segment AgentOS tool ids.</p>
 
-        <h2>The product pressure</h2>
-        <p>Integrators ask for “search everything” and “but not like one bag of URLs.” Those are both true. Flat indexes force people into brittle query tricks; overbuilt host rankers invent policy that should live next to the index.</p>
-
-        <h2>The cut we chose</h2>
-        <p>A collection is seeds + presentation + optional prefix. The guest still owns generations and fusion. This docs site is itself the demo: <code>docs:</code> and <code>blog:</code> are real scopes over the pages you are reading.</p>
-
-        <h2>What we still refuse</h2>
-        <p>Host-side section boosts, security cosplay with unenforced prefixes, and treating the service worker as a crawler. Configure seeds as if they matter.</p>
+        <table class="ref-table">
+          <thead><tr><th>Address</th><th>Input (summary)</th><th>Behavior</th></tr></thead>
+          <tbody>
+            <tr><td><code>host.org.main.search.fetch</code></td><td>url, maxBytes?, timeoutMs?</td><td>GET, credentials omit, fixed UA <code>AgentOSSearch/1.0</code>, origin allowlist, private host rules, redirect final origin check</td></tr>
+            <tr><td><code>host.org.main.search.extract</code></td><td>url, html</td><td>Title (H1 preferred), description, blocks, same-document links; skips script/style/nav/…</td></tr>
+            <tr><td><code>host.org.main.search.embed.batch</code></td><td>texts[], kind?</td><td>Mixedbread UINT8 batch via hermetic embedder + ORT</td></tr>
+          </tbody>
+        </table>
+        <p>Guest-supplied User-Agent on fetch is ignored on the visitor path. Defaults: maxBytes capped (order 2–8 MiB), timeout capped (order 0.5–60s).</p>
 
 
       </article>
@@ -58,7 +59,7 @@
           <a href="/docs/how-to/index.html">How-to</a>
           <a href="/docs/reference/index.html">Reference</a>
           <a href="/docs/explanation/index.html">Explanation</a>
-          <a href="/blog/index.html" aria-current="page">Blog</a>
+          <a href="/blog/index.html">Blog</a>
         </nav>
       </div>
     </footer>

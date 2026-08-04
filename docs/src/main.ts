@@ -1,9 +1,7 @@
 /**
- * Docs site host — release-like product path on every page.
- * Boots the real runtime worker against copied AgentOS assets when present;
- * otherwise falls back to static fixture collections for UI-only HMR.
- *
- * Loaded from home, docs, and blog so ⌘K / Ctrl+K works site-wide.
+ * Docs site host — real documentation + live product demo.
+ * Boots the runtime worker against unpacked agentos-search/ when present;
+ * otherwise fixture collections keep ⌘K usable for UI work.
  */
 import "../../src/register.js";
 import type { McSiteSearch } from "../../src/ui/mc-site-search/element.js";
@@ -12,34 +10,104 @@ import { bootstrapSearchExperience } from "../../src/host/bootstrap.js";
 
 const fixtureItems: SearchItem[] = [
   {
-    id: "runtime",
+    id: "first-install",
     collectionId: "docs",
     kind: "page",
-    label: "Runtime notes",
-    secondary: "How the AgentOS search machine boots",
-    href: "/docs/runtime.html",
-    preview: {
-      eyebrow: "docs",
-      title: "Runtime notes",
-      description: "Kernel, search-atlas, searchd, and host tools.",
-      facts: [{ label: "Path", value: "/docs/runtime.html" }],
-    },
+    label: "Install the package on a static site",
+    secondary: "Tutorial — unpack release.tar and load the entry script",
+    href: "/docs/tutorials/first-install.html",
+    meta: "/docs/tutorials/first-install.html",
   },
   {
-    id: "collections",
+    id: "multi-collection",
+    collectionId: "docs",
+    kind: "page",
+    label: "Walk through multi-collection search",
+    secondary: "Tutorial — two scopes, prefixes, and palette sections",
+    href: "/docs/tutorials/multi-collection.html",
+    meta: "/docs/tutorials/multi-collection.html",
+  },
+  {
+    id: "architecture",
+    collectionId: "docs",
+    kind: "page",
+    label: "How the runtime fits together",
+    secondary: "Explanation — page, worker, guest, OPFS",
+    href: "/docs/explanation/architecture.html",
+    meta: "/docs/explanation/architecture.html",
+  },
+  {
+    id: "hybrid-ranking",
+    collectionId: "docs",
+    kind: "page",
+    label: "Hybrid ranking",
+    secondary: "Explanation — FTS5, VANN, and reciprocal rank fusion",
+    href: "/docs/explanation/hybrid-ranking.html",
+    meta: "/docs/explanation/hybrid-ranking.html",
+  },
+  {
+    id: "configuration",
+    collectionId: "docs",
+    kind: "page",
+    label: "Configuration",
+    secondary: "Reference — AgentOSSearch options and BrowserCrawlDefinition",
+    href: "/docs/reference/configuration.html",
+    meta: "/docs/reference/configuration.html",
+  },
+  {
+    id: "searchd-protocol",
+    collectionId: "docs",
+    kind: "page",
+    label: "searchd protocol",
+    secondary: "Reference — serviceCall ops configure through cancel",
+    href: "/docs/reference/searchd-protocol.html",
+    meta: "/docs/reference/searchd-protocol.html",
+  },
+  {
+    id: "csp-howto",
+    collectionId: "docs",
+    kind: "page",
+    label: "Set Content-Security-Policy for the package",
+    secondary: "How-to — wasm-unsafe-eval, blob, worker-src",
+    href: "/docs/how-to/csp.html",
+    meta: "/docs/how-to/csp.html",
+  },
+  {
+    id: "collections-blog",
     collectionId: "blog",
     kind: "page",
-    label: "Collections example",
-    secondary: "First-class presentation collections",
+    label: "Why collections exist",
+    secondary: "Blog — scopes without host-side ranking",
     href: "/blog/collections.html",
-    preview: {
-      eyebrow: "blog",
-      title: "Collections example",
-      description: "Docs and blog as separate sections in the palette.",
-      facts: [{ label: "Path", value: "/blog/collections.html" }],
-    },
+    meta: "/blog/collections.html",
   },
-];
+  {
+    id: "command-palette-blog",
+    collectionId: "blog",
+    kind: "page",
+    label: "Command palette on the desktop, sheet on the phone",
+    secondary: "Blog — one component, two layout modes",
+    href: "/blog/command-palette.html",
+    meta: "/blog/command-palette.html",
+  },
+  {
+    id: "guest-boundary-blog",
+    collectionId: "blog",
+    kind: "page",
+    label: "Living with a guest boundary",
+    secondary: "Blog — costs and benefits of searchd authority",
+    href: "/blog/guest-boundary.html",
+    meta: "/blog/guest-boundary.html",
+  },
+].map((item) => ({
+  ...item,
+  preview: {
+    eyebrow: item.collectionId,
+    title: item.label,
+    description: item.secondary,
+    facts: [{ label: "Path", value: item.href! }],
+  },
+}));
 
 function fixtureCollections(): SearchCollection[] {
   return [
@@ -50,13 +118,15 @@ function fixtureCollections(): SearchCollection[] {
       prefix: "docs:",
       placeholder: "Search docs",
       minQueryLength: 1,
-      limit: 8,
+      limit: 12,
       source: "local",
       capabilities: ["lexical"],
       search: ({ query }) => {
         const q = query.toLowerCase();
         return fixtureItems.filter((item) => item.collectionId === "docs" && (
-          !q || item.label.toLowerCase().includes(q) || (item.secondary ?? "").toLowerCase().includes(q)
+          !q
+          || item.label.toLowerCase().includes(q)
+          || (item.secondary ?? "").toLowerCase().includes(q)
         ));
       },
     },
@@ -73,14 +143,15 @@ function fixtureCollections(): SearchCollection[] {
       search: ({ query }) => {
         const q = query.toLowerCase();
         return fixtureItems.filter((item) => item.collectionId === "blog" && (
-          !q || item.label.toLowerCase().includes(q) || (item.secondary ?? "").toLowerCase().includes(q)
+          !q
+          || item.label.toLowerCase().includes(q)
+          || (item.secondary ?? "").toLowerCase().includes(q)
         ));
       },
     },
   ];
 }
 
-/** Ensure a palette host exists (header slot preferred; else body mount). */
 function ensureSearchElement(): McSiteSearch {
   let element = document.querySelector<McSiteSearch>("mc-site-search");
   if (!element) {
@@ -90,7 +161,7 @@ function ensureSearchElement(): McSiteSearch {
     else document.body.prepend(element);
   }
   element.showLauncher = true;
-  element.placeholder = "Search the docs site";
+  element.placeholder = "Search documentation";
   return element;
 }
 
@@ -111,7 +182,7 @@ void (async () => {
           seeds: ["/docs/"],
           includePathPrefixes: ["/docs/"],
           order: 10,
-          maxPages: 20,
+          maxPages: 80,
         },
         {
           id: "blog",

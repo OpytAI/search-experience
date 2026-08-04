@@ -11,6 +11,7 @@ import {
   resolveActiveKey,
   type RecentEntry,
 } from "../palette/recents.js";
+import { rankCollectionStatesForQuery } from "../palette/collection-rank.js";
 import type {
   CollectionResultState,
   SearchCollection,
@@ -276,7 +277,9 @@ export class McSiteSearch extends LitElement {
   }
 
   private visibleStates(): readonly CollectionResultState[] {
-    if (this.query.trim()) return this.resultStates;
+    // Non-empty query: section order follows best title/query fit (RRF alone ties every
+    // collection's rank-1 at ~1/61). e.g. blog "Why collections exist" above docs.
+    if (this.query.trim()) return rankCollectionStatesForQuery(this.resultStates, this.query);
     const liveItems = this.resultStates.flatMap((state) => state.items);
     const recentItems = deriveLiveRecents(this.recents, liveItems);
     if (recentItems.length === 0) return this.resultStates;

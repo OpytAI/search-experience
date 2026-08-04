@@ -26,11 +26,26 @@ export default defineConfig({
     emptyOutDir: true,
   },
   resolve: {
+    // Live rules_bun stages source via symlinks; keep resolution on the stage
+    // tree (…/rules_bun_stage/docs/node_modules) instead of realpath'ing into
+    // the checkout (which has no workspace node_modules).
+    preserveSymlinks: true,
+    // `vite dev` defaults to the "development" export condition. Lit (lit-html,
+    // lit-element, @lit/reactive-element) then loads development/*.js and prints
+    // "Lit is in dev mode". Prefer production entry points so the docs site
+    // exercises mc-site-search the same way a release bundle does.
+    conditions: ["production", "module", "browser", "import", "default"],
     // Resolve shared deps from docs node_modules when product sources live under ../src.
     alias: {
       lit: pkg("lit"),
       "@search": resolve(root, "../src"),
     },
     dedupe: ["lit"],
+  },
+  // Keep prebundled deps on the same conditions (Vite caches optimizeDeps separately).
+  optimizeDeps: {
+    esbuildOptions: {
+      conditions: ["production", "module", "browser", "import", "default"],
+    },
   },
 });

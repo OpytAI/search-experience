@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AgentOS Search Experience</title>
+    <title>Site search that ships with your pages</title>
+    <meta name="description" content="Pedagogical docs for AgentOS site search, and a real multi-collection demo of the product. Open ⌘K / Ctrl K on any page when the release package is mounted under /agentos-search/ ." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -13,66 +14,108 @@
         <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
         <span class="brand-text">
           AgentOS Search
-          <small>docs site</small>
+          <small>docs</small>
         </span>
       </a>
       <nav class="site-nav" aria-label="Primary">
         <a href="/" aria-current="page">Home</a>
-        <a href="/docs/runtime.html">Docs</a>
-        <a href="/blog/collections.html">Blog</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
       </nav>
-      <mc-site-search placeholder="Search the docs site"></mc-site-search>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
     </header>
 
-    <main class="site-main">
-      <section class="hero">
-        <img
-          class="hero-visual"
-          src="/hero.png"
-          width="1536"
-          height="1024"
-          alt="AgentOS site search command palette"
-        />
-        <p class="eyebrow">Docs site</p>
-        <h1>Site search on AgentOS</h1>
+    <main class="site-main site-main--wide">
+      <section class="hub">
+        <p class="eyebrow">Documentation · live demo</p>
+        <h1>Site search that ships with your pages</h1>
         <p class="lead">
-          Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> from any page to open the palette.
-          When release assets are mounted under <code>/agentos-search/</code>, the real
-          guest path boots; otherwise fixture collections keep the UI usable.
+          Pedagogical docs for AgentOS site search, and a real multi-collection demo of the product.
+          Open <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> on any page when the release package is mounted under
+          <code>/agentos-search/</code>.
         </p>
-        <div class="card-grid">
-          <a class="card" href="/docs/runtime.html">
-            <span class="tag">docs</span>
-            <h2>Runtime notes</h2>
-            <p>Kernel, search-atlas, searchd, and host tools in the production path.</p>
+        <p class="hub-hint">Collections: Documentation (<code>docs:</code>) and Blog (<code>blog:</code>). Structure follows <a href="https://diataxis.fr/">Diátaxis</a>.</p>
+
+        <div class="type-map" role="list">
+          <a class="type-entry" href="/docs/tutorials/index.html" role="listitem">
+            <span class="type-label">Tutorials</span>
+            <span class="type-title">Learn by doing</span>
+            <span class="type-desc">5 guided paths from first install through warm snapshots.</span>
           </a>
-          <a class="card" href="/blog/collections.html">
-            <span class="tag">blog</span>
-            <h2>Collections</h2>
-            <p>How docs and blog stay first-class sections in the palette.</p>
+          <a class="type-entry" href="/docs/how-to/index.html" role="listitem">
+            <span class="type-label">How-to</span>
+            <span class="type-title">Solve a task</span>
+            <span class="type-desc">9 procedures for hosting, CSP, config, frameworks, debug.</span>
+          </a>
+          <a class="type-entry" href="/docs/reference/index.html" role="listitem">
+            <span class="type-label">Reference</span>
+            <span class="type-title">Look it up</span>
+            <span class="type-desc">9 pages: config, protocol, schema, tokens, security.</span>
+          </a>
+          <a class="type-entry" href="/docs/explanation/index.html" role="listitem">
+            <span class="type-label">Explanation</span>
+            <span class="type-title">Understand why</span>
+            <span class="type-desc">8 essays on architecture, ranking, extract, embeddings.</span>
           </a>
         </div>
-      </section>
 
-      <section class="article">
-        <h2>Try it</h2>
-        <ul>
-          <li>Open search with the header button or <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>.</li>
-          <li>Filter with prefixes like <code>docs:</code> or <code>blog:</code>.</li>
-          <li>Navigate results with arrows; preview stays on the right.</li>
-        </ul>
-        <div class="callout">
-          <strong>Local workflow</strong>
-          Run <code>bazel run //docs:dev</code>, then optionally unpack
-          <code>//:release</code> into <code>docs/public/</code> for the full product path.
+        <div class="hub-columns">
+
+        <div class="hub-col">
+          <h3 class="hub-col-title">Start here</h3>
+          <ul class="hub-link-list">
+              <li><a href="/docs/tutorials/first-install.html"><span class="index-title">Install the package on a static site</span></a></li>
+              <li><a href="/docs/tutorials/first-search.html"><span class="index-title">Run your first real search</span></a></li>
+              <li><a href="/docs/tutorials/multi-collection.html"><span class="index-title">Walk through multi-collection search</span></a></li>
+          </ul>
+        </div>
+
+        <div class="hub-col">
+          <h3 class="hub-col-title">Common tasks</h3>
+          <ul class="hub-link-list">
+              <li><a href="/docs/how-to/host-static.html"><span class="index-title">Host on a static origin</span></a></li>
+              <li><a href="/docs/how-to/csp.html"><span class="index-title">Set Content-Security-Policy</span></a></li>
+              <li><a href="/docs/how-to/configure-collections.html"><span class="index-title">Configure collections</span></a></li>
+              <li><a href="/docs/how-to/place-launcher.html"><span class="index-title">Place the launcher yourself</span></a></li>
+          </ul>
+        </div>
+
+        <div class="hub-col">
+          <h3 class="hub-col-title">Deep dives</h3>
+          <ul class="hub-link-list">
+              <li><a href="/docs/explanation/architecture.html"><span class="index-title">How the runtime fits together</span></a></li>
+              <li><a href="/docs/explanation/authority.html"><span class="index-title">Who owns ranking</span></a></li>
+              <li><a href="/docs/explanation/indexing-lifecycle.html"><span class="index-title">Indexing lifecycle</span></a></li>
+              <li><a href="/docs/explanation/hybrid-ranking.html"><span class="index-title">Hybrid ranking</span></a></li>
+          </ul>
+        </div>
+
+        <div class="hub-col">
+          <h3 class="hub-col-title">Blog</h3>
+          <ul class="hub-link-list">
+              <li><a href="/blog/collections.html"><span class="index-title">Why collections exist</span></a></li>
+              <li><a href="/blog/command-palette.html"><span class="index-title">Palette and mobile sheet</span></a></li>
+              <li><a href="/blog/guest-boundary.html"><span class="index-title">Living with a guest boundary</span></a></li>
+          </ul>
+        </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      AgentOS search-experience docs ·
-      <a href="/docs/runtime.html">Runtime</a> ·
-      <a href="/blog/collections.html">Collections</a>
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
     </footer>
 
     <script type="module" src="/src/main.ts"></script>

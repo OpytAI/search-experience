@@ -14,8 +14,9 @@ import {
   resolveActiveKey,
 } from "../src/ui/palette/recents.ts";
 import { SearchCollectionRegistry } from "../src/ui/palette/registry.ts";
+import { rankCollectionStatesForQuery } from "../src/ui/palette/collection-rank.ts";
 import { hitsToItems } from "../src/host/hits.ts";
-import type { SearchCollection, SearchItem } from "../src/ui/palette/types.ts";
+import type { CollectionResultState, SearchCollection, SearchItem } from "../src/ui/palette/types.ts";
 
 assert(mixedbreadDocumentText("Title", "H", "Body") === "Title\nH\nBody", "document text join");
 assert(mixedbreadQueryText("  hello   world ") === "hello world", "query normalize");
@@ -110,5 +111,43 @@ assert(
   resolveActiveKey(activeOnB, [{ ...lexical[1]!, disabled: true }, hybridOrder[0]!]) === recentKey(hybridOrder[0]!),
   "disabled previous falls back",
 );
+
+const docsCol: SearchCollection = { id: "docs", label: "Documentation", order: 10, search: () => [] };
+const blogCol: SearchCollection = { id: "blog", label: "Blog", order: 20, search: () => [] };
+// RRF rank-1 scores are ~equal across collections — title affinity must decide.
+const fixedOrder: CollectionResultState[] = [
+  {
+    collection: docsCol,
+    status: "ready",
+    items: [{
+      id: "home",
+      collectionId: "docs",
+      kind: "page",
+      label: "Site search that ships with your pages",
+      secondary: "Pedagogical docs and a multi-collection demo",
+      score: 0.0164,
+    }],
+  },
+  {
+    collection: blogCol,
+    status: "ready",
+    items: [{
+      id: "collections",
+      collectionId: "blog",
+      kind: "page",
+      label: "Why collections exist",
+      secondary: "Scopes without host ranking",
+      score: 0.0161,
+    }],
+  },
+];
+const ranked = rankCollectionStatesForQuery(fixedOrder, "collections");
+assert(ranked[0]?.collection.id === "blog", "title match pulls blog section above docs");
+assert(ranked[1]?.collection.id === "docs", "weaker title match follows");
+const tie = rankCollectionStatesForQuery([
+  { collection: blogCol, status: "ready", items: [{ id: "a", collectionId: "blog", kind: "page", label: "Alpha", score: 0.02 }] },
+  { collection: docsCol, status: "ready", items: [{ id: "b", collectionId: "docs", kind: "page", label: "Bravo", score: 0.02 }] },
+], "zzzz");
+assert(tie[0]?.collection.id === "docs", "no query affinity → collection.order");
 
 console.log("search-ui.test.ts: ok");

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configure multi-collection crawl</title>
+    <meta name="description" content="Declare labeled scopes with seeds and UI prefixes so the palette matches how people think about your site." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/configure-collections.html</span>
+        </div>
+        <h1>Configure multi-collection crawl</h1>
+        <p class="lead">Declare labeled scopes with seeds and UI prefixes so the palette matches how people think about your site.</p>
+
+        <h2>Minimal multi-collection config</h2>
+        <pre><code>globalThis.AgentOSSearch = {
+  collections: [
+    { id: "docs", label: "Documentation", seeds: ["/docs/"], prefix: "docs:", order: 10 },
+    { id: "blog", label: "Blog", seeds: ["/blog/"], prefix: "blog:", order: 20 },
+  ],
+  refreshAfterMs: 60 * 60 * 1000,
+};</code></pre>
+
+        <h2>Fields that change behavior today</h2>
+        <ul>
+          <li><code>seeds</code> — absolute or page-resolved start URLs for the crawl queue.</li>
+          <li><code>id</code> / <code>label</code> / <code>order</code> / <code>prefix</code> / <code>placeholder</code> / <code>limit</code> / <code>minQueryLength</code> — palette.</li>
+          <li><code>refreshAfterMs</code> — background rebuild cadence (clamped 60s … 7d when set).</li>
+        </ul>
+
+        <h2>Fields carried but not fully guest-enforced yet</h2>
+        <p><code>includePathPrefixes</code>, <code>excludePathPrefixes</code>, <code>maxPages</code>, sitemaps may be present in <code>BrowserCrawlDefinition</code>. Host path helpers and guest policy are evolving—treat seeds as the hard boundary until your version documents enforcement as complete.</p>
+
+        <h2>Same-origin rule</h2>
+        <p>Fetch allowlist is the page origin. Extra <code>origins</code> entries only stick if they match that origin. Off-origin indexing is out of scope for the visitor product.</p>
+
+        <p>Types: <a href="/docs/reference/index.html">configuration reference</a>. Why: <a href="/blog/collections.html">collections essay</a>.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

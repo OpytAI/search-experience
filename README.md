@@ -289,9 +289,11 @@ This repository is the **product** that builds and ships AgentOS site search. It
 ```sh
 bazel run //tools/deps:update_lock   # after package.json changes
 bazel test //:check                  # typecheck + unit smoke
-bazel run //docs:dev                 # http://127.0.0.1:5191
-bazel build //:release               # bazel-bin/release.tar
+bazel run //docs:dev                 # builds //:release, stages docs/public/agentos-search, serves http://127.0.0.1:5191
+bazel build //:release               # bazel-bin/release.tar (CI / integrators)
 ```
+
+Long-form documentation (Diátaxis tutorials, how-tos, reference, explanation, plus blog) lives under **`docs/`**. `bazel run //docs:dev` depends on `//:release` and stages `docs/public/agentos-search/` automatically (gitignored). Root README stays install-first; the site is the pedagogical surface.
 
 Bazel’s user root (caches and outputs) lives under **`./bazel-cache`** in this repo (see `.bazelrc`). That path is gitignored. Always run Bazel from the workspace root so it resolves next to `MODULE.bazel`.
 
@@ -348,9 +350,7 @@ Queries always read `/var/searchd/index.db`. A cold first index writes `index.db
 Full product path against the docs site:
 
 ```sh
-bazel build //:release
-tar -xf bazel-bin/release.tar -C docs/public
-bazel run //docs:dev
+bazel run //docs:dev   # rebuilds release when inputs change; stages agentos-search
 ```
 
 Hermetic unit tests are not browser E2E. After a release is unpacked, run system Chromium against the real package (`CHROMIUM_PATH` or `/usr/bin/chromium`):

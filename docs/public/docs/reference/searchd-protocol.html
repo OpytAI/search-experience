@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>searchd protocol</title>
+    <meta name="description" content="Guest authority speaks JSON over vm.serviceCall(&quot;searchd&quot;, requestBytes) . Source of truth: guest/searchd/searchd.protocol.json and src/protocol/searchd.ts ." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html" aria-current="page">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Reference</p>
+          <span class="page-path">/docs/reference/searchd-protocol.html</span>
+        </div>
+        <h1>searchd protocol</h1>
+        <p class="lead">Guest authority speaks JSON over <code>vm.serviceCall("searchd", requestBytes)</code>. Source of truth: <code>guest/searchd/searchd.protocol.json</code> and <code>src/protocol/searchd.ts</code>.</p>
+
+        <h2>Transport</h2>
+        <p>Mode <code>serviceCall</code> only. Paths: active index <code>/var/searchd/index.db</code>, candidate <code>/var/searchd/candidate.db</code>, state <code>/var/searchd/state.json</code>.</p>
+
+        <h2>Ops</h2>
+        <table class="ref-table">
+          <thead><tr><th>op</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td><code>configure</code></td><td>Collections, schema SQL, model fingerprint, compatibility key, page origin, optional resume</td></tr>
+            <tr><td><code>status</code></td><td>Ready / phase / counts / semantic claim</td></tr>
+            <tr><td><code>crawl_step</code></td><td>Queue work; host fetch+extract; writes active or candidate</td></tr>
+            <tr><td><code>embed_step</code></td><td>Batch embed via host; VANN insert</td></tr>
+            <tr><td><code>query</code></td><td>Always reads active index; FTS + optional vector + RRF</td></tr>
+            <tr><td><code>refresh</code></td><td>Start candidate generation</td></tr>
+            <tr><td><code>checkpoint</code></td><td>Persistence markers (lexical | semantic | idle)</td></tr>
+            <tr><td><code>promote</code></td><td>Candidate → active when valid</td></tr>
+            <tr><td><code>cancel</code></td><td>Cancel in-flight work</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Response envelope</h2>
+        <p>Ok: <code>{ v, id, ok: true, op, status?, progress?, hits? }</code>. Err: <code>{ v, id, ok: false, code, error }</code>.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

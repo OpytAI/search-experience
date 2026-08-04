@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why collections exist</title>
-    <meta name="description" content="Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank." />
+    <title>Theme the palette</title>
+    <meta name="description" content="Align colors, radius, and width with your product chrome using CSS variables on mc-site-search ." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -20,10 +20,10 @@
       <nav class="site-nav" aria-label="Primary">
         <a href="/">Home</a>
         <a href="/docs/tutorials/index.html">Tutorials</a>
-        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
         <a href="/docs/reference/index.html">Reference</a>
         <a href="/docs/explanation/index.html">Explanation</a>
-        <a href="/blog/index.html" aria-current="page">Blog</a>
+        <a href="/blog/index.html">Blog</a>
       </nav>
       <mc-site-search placeholder="Search documentation"></mc-site-search>
     </header>
@@ -31,20 +31,29 @@
     <main class="site-main">
       <article class="article">
         <div class="page-meta">
-          <p class="eyebrow">Blog</p>
-          <span class="page-path">/blog/collections.html</span>
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/theme.html</span>
         </div>
-        <h1>Why collections exist</h1>
-        <p class="lead">Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank.</p>
+        <h1>Theme the palette</h1>
+        <p class="lead">Align colors, radius, and width with your product chrome using CSS variables on <code>mc-site-search</code>.</p>
 
-        <h2>The product pressure</h2>
-        <p>Integrators ask for “search everything” and “but not like one bag of URLs.” Those are both true. Flat indexes force people into brittle query tricks; overbuilt host rankers invent policy that should live next to the index.</p>
+        <h2>Quick theme</h2>
+        <pre><code>mc-site-search {
+  --mc-search-fg: #0f172a;
+  --mc-search-surface: #ffffff;
+  --mc-search-focus: #4f46e5;
+  --mc-search-border: #e2e8f0;
+  --mc-search-width: 720px;
+  --mc-search-radius: 12px;
+}</code></pre>
 
-        <h2>The cut we chose</h2>
-        <p>A collection is seeds + presentation + optional prefix. The guest still owns generations and fusion. This docs site is itself the demo: <code>docs:</code> and <code>blog:</code> are real scopes over the pages you are reading.</p>
+        <h2>Palette vs sheet</h2>
+        <p>Desktop uses a centered dialog (<code>layout="palette"</code>). At max-width 680px the host sets <code>layout="sheet"</code>: full viewport, safe areas, close control. Tokens like <code>--mc-search-width</code> and <code>--mc-search-top</code> apply to palette mode; sheet uses visualViewport-driven height.</p>
 
-        <h2>What we still refuse</h2>
-        <p>Host-side section boosts, security cosplay with unenforced prefixes, and treating the service worker as a crawler. Configure seeds as if they matter.</p>
+        <h2>Dark mode</h2>
+        <p>The element ships <code>prefers-color-scheme: dark</code> defaults. Override the same variables inside your own dark scope if the page theme is class-based rather than system preference.</p>
+
+        <p>Full token and part list: <a href="/docs/reference/css-tokens.html">CSS tokens reference</a>.</p>
 
 
       </article>
@@ -58,7 +67,7 @@
           <a href="/docs/how-to/index.html">How-to</a>
           <a href="/docs/reference/index.html">Reference</a>
           <a href="/docs/explanation/index.html">Explanation</a>
-          <a href="/blog/index.html" aria-current="page">Blog</a>
+          <a href="/blog/index.html">Blog</a>
         </nav>
       </div>
     </footer>

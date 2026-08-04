@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Explanation</title>
+    <meta name="description" content="Understanding-oriented essays. They clarify concepts; they are not step checklists or complete API tables." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html" aria-current="page">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Explanation</p>
+          <span class="page-path">/docs/explanation/</span>
+        </div>
+        <h1>Explanation</h1>
+        <p class="lead">Understanding-oriented essays. They clarify concepts; they are not step checklists or complete API tables.</p>
+
+        <ul class="index-list">
+            <li>
+              <a href="/docs/explanation/index.html">
+                <span class="index-path">/docs/explanation/architecture.html</span>
+                <span class="index-title">How the runtime fits together</span>
+                <span class="index-desc">Page, worker, guest, OPFS.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/authority.html">
+                <span class="index-path">/docs/explanation/authority.html</span>
+                <span class="index-title">Who owns ranking</span>
+                <span class="index-desc">searchd vs host tools vs UI.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/indexing-lifecycle.html">
+                <span class="index-path">/docs/explanation/indexing-lifecycle.html</span>
+                <span class="index-title">Indexing lifecycle</span>
+                <span class="index-desc">Cold crawl, refresh, promote.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/hybrid-ranking.html">
+                <span class="index-path">/docs/explanation/hybrid-ranking.html</span>
+                <span class="index-title">Hybrid ranking</span>
+                <span class="index-desc">FTS5, VANN, RRF fusion.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/extract-pipeline.html">
+                <span class="index-path">/docs/explanation/extract-pipeline.html</span>
+                <span class="index-title">From HTML to hits</span>
+                <span class="index-desc">Extract, titles, snippets.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/snapshots.html">
+                <span class="index-path">/docs/explanation/snapshots.html</span>
+                <span class="index-title">Warm snapshots</span>
+                <span class="index-desc">MCSN, gzip, compatibility keys.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/service-worker.html">
+                <span class="index-path">/docs/explanation/service-worker.html</span>
+                <span class="index-title">What the service worker is for</span>
+                <span class="index-desc">Distribution cache only.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/explanation/embedding-model.html">
+                <span class="index-path">/docs/explanation/embedding-model.html</span>
+                <span class="index-title">Why Mixedbread ships in the package</span>
+                <span class="index-desc">Hermetic embeds, no CDN.</span>
+              </a>
+            </li>
+        </ul>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

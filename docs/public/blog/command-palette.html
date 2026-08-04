@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why collections exist</title>
-    <meta name="description" content="Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank." />
+    <title>Command palette on the desktop, sheet on the phone</title>
+    <meta name="description" content="Search UI is a command surface. The same custom element becomes immersive when the keyboard is virtual and the viewport is short." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -32,19 +32,19 @@
       <article class="article">
         <div class="page-meta">
           <p class="eyebrow">Blog</p>
-          <span class="page-path">/blog/collections.html</span>
+          <span class="page-path">/blog/command-palette.html</span>
         </div>
-        <h1>Why collections exist</h1>
-        <p class="lead">Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank.</p>
+        <h1>Command palette on the desktop, sheet on the phone</h1>
+        <p class="lead">Search UI is a command surface. The same custom element becomes immersive when the keyboard is virtual and the viewport is short.</p>
 
-        <h2>The product pressure</h2>
-        <p>Integrators ask for “search everything” and “but not like one bag of URLs.” Those are both true. Flat indexes force people into brittle query tricks; overbuilt host rankers invent policy that should live next to the index.</p>
+        <h2>Desktop grammar</h2>
+        <p>Type, move, confirm—shared with app launchers. Preview exists because scanning titles alone is hostile on dense sites. Keyboard chrome stays when a fine pointer is primary.</p>
 
-        <h2>The cut we chose</h2>
-        <p>A collection is seeds + presentation + optional prefix. The guest still owns generations and fusion. This docs site is itself the demo: <code>docs:</code> and <code>blog:</code> are real scopes over the pages you are reading.</p>
+        <h2>Phone grammar</h2>
+        <p>Floating cards waste space and fight the software keyboard. Sheet mode claims the viewport, docks the field, sizes to visualViewport, and shows a close control when Esc chips disappear.</p>
 
-        <h2>What we still refuse</h2>
-        <p>Host-side section boosts, security cosplay with unenforced prefixes, and treating the service worker as a crawler. Configure seeds as if they matter.</p>
+        <h2>One implementation</h2>
+        <p>Layout is a mode on <code>mc-site-search</code>, not a second mobile product. That keeps accessibility (modal dialog) and theming (one token set) coherent.</p>
 
 
       </article>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Security surface</title>
+    <meta name="description" content="Hard limits on network, storage side effects, and navigation from search results." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html" aria-current="page">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Reference</p>
+          <span class="page-path">/docs/reference/security.html</span>
+        </div>
+        <h1>Security surface</h1>
+        <p class="lead">Hard limits on network, storage side effects, and navigation from search results.</p>
+
+        <h2>Fetch</h2>
+        <ul>
+          <li>http(s) only; <code>credentials: "omit"</code></li>
+          <li>Allowlist: page origin (visitor product)</li>
+          <li>Private/link-local hosts blocked unless that origin is explicitly the page origin</li>
+          <li>Redirect final URL must remain allowed</li>
+          <li>Fixed UA <code>AgentOSSearch/1.0</code></li>
+          <li>Body and timeout caps</li>
+        </ul>
+
+        <h2>Extract / index text</h2>
+        <p>Skips script, style, template, svg, canvas, form, dialog, nav, footer, header regions when building blocks. Links retained only if sanitizable to http(s).</p>
+
+        <h2>Result navigation</h2>
+        <p>Hits mapped through <code>sanitizeHttpUrl</code> / same-origin filters before palette navigation.</p>
+
+        <h2>SQL</h2>
+        <p>Guest builds FTS MATCH and dynamic SQL through quoting helpers (<code>sql_safe</code>); treat untrusted query text as hostile input still—defense is layered, not “stringly SQL forever.”</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

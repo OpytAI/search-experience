@@ -12,20 +12,21 @@ filegroup(
             "BUILD.bazel",
             "dist/**",
             "node_modules/**",
+            "public/agentos-search/**",
         ],
     ),
 )
 
-# Typecheck docs + product sources from the repo root so root node_modules
-# (lit, etc.) resolve for files under src/ imported by the docs site.
+# Typecheck docs + product sources from the repo root so product imports under src/ resolve.
 search_typecheck(
     name = "typecheck",
     chdir = ".",
     tsconfig = "docs/tsconfig.json",
 )
 
+# Vite-only runner (live workspace). Prefer //docs:dev which stages //:release first.
 search_dev_binary(
-    name = "dev",
+    name = "_dev_vite",
     chdir = "docs",
     fixed_args = [
         "node_modules/.bin/vite",
@@ -34,6 +35,17 @@ search_dev_binary(
         "127.0.0.1",
         "--port",
         "5191",
+    ],
+)
+
+# Public entry: rebuild release when needed, unpack to docs/public/agentos-search (gitignored), run Vite.
+# This is the whole point of Bazel — no manual tar step.
+sh_binary(
+    name = "dev",
+    srcs = ["dev_launch.sh"],
+    data = [
+        ":_dev_vite",
+        "//:release",
     ],
 )
 

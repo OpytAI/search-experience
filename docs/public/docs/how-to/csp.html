@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Set Content-Security-Policy for the package</title>
+    <meta name="description" content="Allow modules, module workers, Wasm compile, blob imports, and same-origin connect—without opening a third-party script CDN." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/csp.html</span>
+        </div>
+        <h1>Set Content-Security-Policy for the package</h1>
+        <p class="lead">Allow modules, module workers, Wasm compile, blob imports, and same-origin connect—without opening a third-party script CDN.</p>
+
+        <h2>Minimum directives</h2>
+        <pre><code>Content-Security-Policy:
+  script-src 'self' 'wasm-unsafe-eval' blob:;
+  worker-src 'self' blob:;
+  connect-src 'self';</code></pre>
+
+        <h2>Why each token</h2>
+        <ul>
+          <li><code>'self'</code> — page module, worker scripts, package assets, crawl GETs on the page origin.</li>
+          <li><code>'wasm-unsafe-eval'</code> — kernel and ONNX Runtime compile under CSP (prefer over broad <code>'unsafe-eval'</code>).</li>
+          <li><code>blob:</code> — verified package JS re-imported from blob URLs after SHA-256 checks (mc-core, embedder).</li>
+        </ul>
+
+        <h2>What you do not need</h2>
+        <ul>
+          <li>Third-party model or script hosts (weights ship in the package).</li>
+          <li>Cross-Origin Isolation / COOP-COEP for SharedArrayBuffer (ORT runs single-thread here).</li>
+        </ul>
+
+        <h2>Symptoms of a bad CSP</h2>
+        <p>Console: blocked Wasm, failed dynamic import, worker construction errors. Fix the directive that the violation names; do not disable CSP site-wide as the first move.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Walk through multi-collection search</title>
+    <meta name="description" content="You will declare two collections with separate seeds and prefixes, reload, and verify the palette shows both sections." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html" aria-current="page">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Tutorial</p>
+          <span class="page-path">/docs/tutorials/multi-collection.html</span>
+        </div>
+        <h1>Walk through multi-collection search</h1>
+        <p class="lead">You will declare two collections with separate seeds and prefixes, reload, and verify the palette shows both sections.</p>
+
+        <h2>Scenario</h2>
+        <p>Your site has documentation under <code>/docs/</code> and posts under <code>/blog/</code>. You want both searchable, labeled, and prefix-filterable—without a host-side ranker inventing “boosts.”</p>
+
+        <h2>1. Write the config</h2>
+        <p>Before the entry module:</p>
+        <pre><code>&lt;script&gt;
+  globalThis.AgentOSSearch = {
+    collections: [
+      {
+        id: "docs",
+        label: "Documentation",
+        seeds: ["/docs/"],
+        prefix: "docs:",
+        order: 10,
+      },
+      {
+        id: "blog",
+        label: "Blog",
+        seeds: ["/blog/"],
+        prefix: "blog:",
+        order: 20,
+      },
+    ],
+  };
+&lt;/script&gt;
+&lt;script type="module" src="/agentos-search/agentos-search.mjs"&gt;&lt;/script&gt;</code></pre>
+
+        <h2>2. Keep the graph small</h2>
+        <p>Crawl BFS-follows same-origin links from each seed. Until guest fully enforces include/exclude prefixes, a link from a docs page to <code>/</code> can pull the whole site into that collection’s queue. Prefer a tight internal graph and explicit seeds (this documentation tree is intentionally nested under <code>/docs/</code> and <code>/blog/</code>).</p>
+
+        <h2>3. Verify in the palette</h2>
+        <ol>
+          <li>Hard-refresh so config is not stale.</li>
+          <li>Open search and type a shared word (for example <code>collection</code>).</li>
+          <li>Confirm separate section headings for Documentation and Blog when both match.</li>
+          <li>Try <code>blog:</code> alone with a blog-only term—results should stay in Blog.</li>
+        </ol>
+
+        <h2>What the guest stored</h2>
+        <p>Each collection is partitioned in SQLite (pages/chunks keyed by <code>collection_id</code>; VANN uses a <code>collection_id</code> partition). Queries always hit the active <code>index.db</code> for that generation—not a host-built JSON index.</p>
+
+        <h2>Checkpoint</h2>
+        <p>Two scopes appear as first-class UI sections. Deep field list: <a href="/docs/reference/index.html">configuration</a>. Concept: <a href="/blog/collections.html">why collections exist</a>.</p>
+
+        <p class="article-nav"><a href="/docs/tutorials/first-search.html">← First search</a> · <a href="/docs/tutorials/spa-navigation.html">Next →</a></p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

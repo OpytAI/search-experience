@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prewarm a gzip MCSN snapshot</title>
+    <meta name="description" content="Capture after a real crawl; inject snapshot assets and digests into a release directory." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/prewarm.html</span>
+        </div>
+        <h1>Prewarm a gzip MCSN snapshot</h1>
+        <p class="lead">Capture after a real crawl; inject snapshot assets and digests into a release directory.</p>
+
+        <h2>Capture</h2>
+        <pre><code>bun tools/browser-e2e.mjs \
+  --release-dir=docs/public/agentos-search \
+  --export-snapshot --out=./warm
+
+bun src/publisher/cli.ts --capture \
+  --release-dir=docs/public/agentos-search --out=./warm</code></pre>
+        <p>Publisher also supports <code>--origin=…</code> plan-only mode without a guest for CI scaffolding.</p>
+
+        <h2>Inject</h2>
+        <pre><code>bun tools/package-prewarm.mjs \
+  --release-dir=path/to/agentos-search \
+  --snapshot=./warm/search.snapshot \
+  --metadata=./warm/search.snapshot.metadata.json</code></pre>
+
+        <h2>Format rules</h2>
+        <ul>
+          <li>Gzip only (<code>meta.encoding: "gzip"</code>).</li>
+          <li><code>snapshotSha256</code> is over gzip bytes.</li>
+          <li>Raw MCSN on disk is rejected at restore.</li>
+        </ul>
+
+        <p>Why keys invalidate: <a href="/docs/explanation/snapshots.html">snapshots explained</a>. Hands-on: <a href="/docs/tutorials/warm-first-visit.html">warm tutorial</a>.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

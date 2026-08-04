@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why collections exist</title>
-    <meta name="description" content="Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank." />
+    <title>Blog</title>
+    <meta name="description" content="Narrative pieces that stay searchable as their own collection. Not a substitute for tutorials or reference." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -32,19 +32,34 @@
       <article class="article">
         <div class="page-meta">
           <p class="eyebrow">Blog</p>
-          <span class="page-path">/blog/collections.html</span>
+          <span class="page-path">/blog/</span>
         </div>
-        <h1>Why collections exist</h1>
-        <p class="lead">Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank.</p>
+        <h1>Blog</h1>
+        <p class="lead">Narrative pieces that stay searchable as their own collection. Not a substitute for tutorials or reference.</p>
 
-        <h2>The product pressure</h2>
-        <p>Integrators ask for “search everything” and “but not like one bag of URLs.” Those are both true. Flat indexes force people into brittle query tricks; overbuilt host rankers invent policy that should live next to the index.</p>
-
-        <h2>The cut we chose</h2>
-        <p>A collection is seeds + presentation + optional prefix. The guest still owns generations and fusion. This docs site is itself the demo: <code>docs:</code> and <code>blog:</code> are real scopes over the pages you are reading.</p>
-
-        <h2>What we still refuse</h2>
-        <p>Host-side section boosts, security cosplay with unenforced prefixes, and treating the service worker as a crawler. Configure seeds as if they matter.</p>
+        <ul class="index-list">
+            <li>
+              <a href="/blog/collections.html">
+                <span class="index-path">/blog/collections.html</span>
+                <span class="index-title">Why collections exist</span>
+                <span class="index-desc">Scopes without host ranking.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/blog/command-palette.html">
+                <span class="index-path">/blog/command-palette.html</span>
+                <span class="index-title">Palette and mobile sheet</span>
+                <span class="index-desc">One component, two surfaces.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/blog/guest-boundary.html">
+                <span class="index-path">/blog/guest-boundary.html</span>
+                <span class="index-title">Living with a guest boundary</span>
+                <span class="index-desc">What becomes easier—and harder.</span>
+              </a>
+            </li>
+        </ul>
 
 
       </article>

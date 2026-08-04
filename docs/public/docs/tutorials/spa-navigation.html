@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Intercept selection in an SPA</title>
+    <meta name="description" content="Default selection assigns location to the hit URL. You will cancel that and route inside a client-side app instead." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html" aria-current="page">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Tutorial</p>
+          <span class="page-path">/docs/tutorials/spa-navigation.html</span>
+        </div>
+        <h1>Intercept selection in an SPA</h1>
+        <p class="lead">Default selection assigns <code>location</code> to the hit URL. You will cancel that and route inside a client-side app instead.</p>
+
+        <h2>Default behavior</h2>
+        <p>On select, the element dispatches cancelable <code>mc-search-select</code>, then if not canceled navigates with <code>location.assign</code> to a sanitized same-origin http(s) URL.</p>
+
+        <h2>1. Listen on document or the element</h2>
+        <pre><code>document.addEventListener("mc-search-select", (event) =&gt; {
+  const { item, method } = event.detail;
+  event.preventDefault();
+  // your router
+  history.pushState({}, "", item.href);
+  // render route for item.href
+});</code></pre>
+
+        <h2>2. Trust only sanitized hrefs</h2>
+        <p>Hits already pass through host sanitization (http/https, same-origin when origin is known). Still treat <code>item.href</code> as untrusted input for your router: only open paths you allow.</p>
+
+        <h2>3. Preserve query optional</h2>
+        <p>Attribute <code>preserve-query</code> keeps the input when the dialog closes—useful if your shell reopens search often. Default clears query and mode on close.</p>
+
+        <h2>Events nearby</h2>
+        <p><code>mc-search-query</code> fires as the user types (telemetry). <code>mc-search-error</code> reports per-collection search failure—not boot failure. Full table: <a href="/docs/reference/events.html">events reference</a>.</p>
+
+        <h2>Checkpoint</h2>
+        <p>Selection routes in-app without full reload. Next optional path: <a href="/docs/tutorials/warm-first-visit.html">warm first visit</a>.</p>
+
+        <p class="article-nav"><a href="/docs/tutorials/multi-collection.html">← Multi-collection</a> · <a href="/docs/tutorials/warm-first-visit.html">Next →</a></p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

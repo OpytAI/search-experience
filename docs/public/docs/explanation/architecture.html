@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How the runtime fits together</title>
+    <meta name="description" content="Site search is a guest machine in the browser plus a deliberately thin host. The interesting policy lives inside the guest." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html" aria-current="page">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Explanation</p>
+          <span class="page-path">/docs/explanation/architecture.html</span>
+        </div>
+        <h1>How the runtime fits together</h1>
+        <p class="lead">Site search is a guest machine in the browser plus a deliberately thin host. The interesting policy lives inside the guest.</p>
+
+        <h2>Stack</h2>
+        <pre><code>Page module (agentos-search.mjs)
+  → registers mc-site-search, optional SW
+  → module worker (agentos-search-runtime.mjs)
+      → mc-core + kernel.wasm + search-atlas.tar
+      → /svc/searchd  (serviceCall)
+      → host tools: fetch | extract | embed.batch
+      → OPFS snapshots + SQLite under /var/searchd</code></pre>
+
+        <h2>Why a guest</h2>
+        <p>AgentOS gives a stamped service boundary. Ranking, journals, and generation promotion are not scattered across React state and ad-hoc IndexedDB schemas. The host is replaceable glue; the guest is the product authority.</p>
+
+        <h2>Atlas shape</h2>
+        <p><code>search-atlas</code> is not stock AgentOS atlas/loom/Luau. It is base + sqlite (FTS5/VANN) + eager searchd + <code>/var/searchd</code>. Searchd does not shell out to coreutils, so base is enough.</p>
+
+        <p>Continue: <a href="/docs/explanation/authority.html">authority</a>, <a href="/docs/explanation/indexing-lifecycle.html">lifecycle</a>.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Host the package on a static origin</title>
+    <meta name="description" content="Serve agentos-search/ as same-origin static files with correct types and no truncated binaries." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/host-static.html</span>
+        </div>
+        <h1>Host the package on a static origin</h1>
+        <p class="lead">Serve <code>agentos-search/</code> as same-origin static files with correct types and no truncated binaries.</p>
+
+        <h2>Unpack location</h2>
+        <p>Default URL space is <code>/agentos-search/*</code>. Unpack into the directory that maps to your site root. If you nest under <code>/assets/search/</code>, set <code>assetBase</code> and script <code>src</code> together.</p>
+
+        <h2>Required MIME behavior</h2>
+        <table class="ref-table">
+          <thead><tr><th>Extension</th><th>Content-Type</th></tr></thead>
+          <tbody>
+            <tr><td><code>.mjs</code></td><td><code>text/javascript</code> or <code>application/javascript</code></td></tr>
+            <tr><td><code>.wasm</code></td><td><code>application/wasm</code></td></tr>
+            <tr><td><code>.json</code></td><td><code>application/json</code></td></tr>
+            <tr><td><code>.tar</code> / <code>.onnx</code></td><td>octet-stream or vendor type; full body, not HTML error pages</td></tr>
+          </tbody>
+        </table>
+        <p>nginx often needs an explicit <code>types</code> map for <code>mjs</code> and <code>wasm</code>. CDNs usually already do.</p>
+
+        <h2>Body size limits</h2>
+        <p><code>search-atlas.tar</code>, <code>model.onnx</code>, and Wasm files are multi-megabyte. Ensure proxies do not 413 or truncate. Guest cold boot reads the image as bytes.</p>
+
+        <h2>Service worker</h2>
+        <p>Registration is best-effort under the package path for distribution caching only. Failure is non-fatal; search still runs online.</p>
+
+        <p>CSP details: <a href="/docs/how-to/csp.html">CSP how-to</a>. Package inventory: <a href="/docs/reference/package-layout.html">layout reference</a>.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -131,16 +131,57 @@ fi
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
 
+# Live workspace: expose source trees for HMR without writing into the checkout.
+# IMPORTANT: never `ln -s $BUILD_WORKSPACE_DIRECTORY/pkg $STAGE/pkg` for package
+# roots. Later node_modules_link destinations are `$STAGE/pkg/node_modules/...`;
+# if `$STAGE/pkg` is a symlink into the repo, those links pollute the real tree
+# (docs/node_modules, etc.). Link children instead and skip any local node_modules.
+link_live_workspace_root() {
+  local root="$1"
+  local src="$BUILD_WORKSPACE_DIRECTORY/$root"
+  local dst="$STAGE/$root"
+  if [[ ! -e "$src" ]]; then
+    return 0
+  fi
+  if [[ -f "$src" || -L "$src" ]]; then
+    mkdir -p "$(dirname "$dst")"
+    ln -s "$src" "$dst"
+    return 0
+  fi
+  mkdir -p "$dst"
+  local entry name
+  shopt -s nullglob dotglob
+  for entry in "$src"/*; do
+    name="$(basename "$entry")"
+    if [[ "$name" == "node_modules" || "$name" == "." || "$name" == ".." ]]; then
+      continue
+    fi
+    ln -s "$entry" "$dst/$name"
+  done
+  shopt -u nullglob dotglob
+
+  # Tooling entrypoints (vite.config.ts, package.json) must be real files in STAGE.
+  # If they remain symlinks into the checkout, Node realpaths them and resolves
+  # packages from $BUILD_WORKSPACE_DIRECTORY/<pkg>/node_modules — which we
+  # intentionally do not create.
+  local tool
+  for tool in package.json vite.config.ts vite.config.mts vite.config.js vite.config.mjs tsconfig.json; do
+    if [[ -L "$dst/$tool" ]]; then
+      local real
+      real="$(readlink -f "$dst/$tool")"
+      rm -f "$dst/$tool"
+      cp -f "$real" "$dst/$tool"
+    fi
+  done
+}
+
 if [[ "$LIVE_WORKSPACE" == "1" ]]; then
   if [[ -z "${BUILD_WORKSPACE_DIRECTORY:-}" ]]; then
     echo "error: live rules_bun targets must be started with bazel run" >&2
     exit 2
   fi
   for root in "${WORKSPACE_ROOTS[@]}"; do
-    if [[ -e "$BUILD_WORKSPACE_DIRECTORY/$root" ]]; then
-      mkdir -p "$STAGE/$(dirname "$root")"
-      ln -s "$BUILD_WORKSPACE_DIRECTORY/$root" "$STAGE/$root"
-    fi
+    link_live_workspace_root "$root"
   done
 else
   for src in "${SRCS[@]}"; do

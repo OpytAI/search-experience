@@ -63,7 +63,9 @@ export interface SearchVm {
   fs: {
     write(path: string, data: string | Uint8Array): Promise<void> | void;
     read(path: string): Promise<Uint8Array | string> | Uint8Array | string;
-    mkdir?(path: string, recursive?: boolean): Promise<void> | void;
+    /** Control-channel mkdir (non-recursive). AgentOS EEXIST = errno 20. */
+    mkdir?(path: string): Promise<void> | void;
+    stat?(path: string): Promise<{ isDir?: boolean } | null> | { isDir?: boolean } | null;
   };
   /** Optional: not used by production search (serviceCall-only). */
   luau?(src: string, args?: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }>;
@@ -319,20 +321,36 @@ export async function bootSearchVm(options: BootOptions): Promise<BootResult> {
     });
   }
 
-  // Ensure product state dir exists; searchd owns dual-DB under /var/searchd.
-  // Image already ships var/ + var/searchd/; tolerate EEXIST / already-present.
-  try {
-    await vm.fs.mkdir?.("/var", true);
-  } catch {
-    /* parent may already exist from search-atlas product_dirs */
-  }
-  try {
-    await vm.fs.mkdir?.("/var/searchd", true);
-  } catch {
-    /* leaf may already exist; searchd fsutil also mkdir-tolerantly */
-  }
+  // Product DBs live under /var/searchd. Kernel init always creates /var (and
+  // /var/persist); search-atlas ships empty var/searchd/. Host mkdir of /var is
+  // redundant and throws AgentOS EEXIST (errno 20) when the dir already exists —
+  // that is not ENOTDIR. Only ensure the product leaf, treating EEXIST as ok.
+  await ensureGuestDir(vm, "/var/searchd");
 
   return { vm, store, runtime, restored, snapshotMeta, restoreError };
+}
+
+/**
+ * Ensure a guest directory exists. Idempotent: existing dirs (image or prior
+ * mkdir) are success. AgentOS reports EEXIST as errno 20.
+ */
+async function ensureGuestDir(vm: SearchVm, path: string): Promise<void> {
+  const fs = vm.fs;
+  if (!fs?.mkdir) return;
+  try {
+    const st = fs.stat ? await fs.stat(path) : null;
+    if (st && st.isDir) return;
+  } catch {
+    // missing — create below
+  }
+  try {
+    await fs.mkdir(path);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // AgentOS contracts: EEXIST = 20 (not Linux ENOTDIR=20).
+    if (/\berrno 20\b/.test(msg) || /\bEEXIST\b/i.test(msg)) return;
+    throw err;
+  }
 }
 
 /** Returns true only when egress is zero (or API absent). */

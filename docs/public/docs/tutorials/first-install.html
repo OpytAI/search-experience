@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install the package on a static site</title>
+    <meta name="description" content="You will put the release tree next to your pages and load one module script. When you finish, the search launcher is on the page and the guest can boot." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html" aria-current="page">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Tutorial</p>
+          <span class="page-path">/docs/tutorials/first-install.html</span>
+        </div>
+        <h1>Install the package on a static site</h1>
+        <p class="lead">You will put the release tree next to your pages and load one module script. When you finish, the search launcher is on the page and the guest can boot.</p>
+
+        <h2>What you need</h2>
+        <ul>
+          <li>A site you control, served over <code>https:</code> or <code>http://localhost</code> (secure context for OPFS and module workers).</li>
+          <li><code>release.tar</code> from CI or <code>bazel build //:release</code>.</li>
+          <li>Permission to change static hosting (MIME types matter later).</li>
+        </ul>
+
+        <h2>1. Unpack into the static root</h2>
+        <p>Choose the folder your stack already publishes at the site origin:</p>
+        <pre><code>tar -xf release.tar -C public
+# → public/agentos-search/</code></pre>
+        <p>Vite / Next / Nuxt / Astro use <code>public/</code>. Hugo / SvelteKit use <code>static/</code>. Plain nginx uses the document root. The script URL should become <code>/agentos-search/agentos-search.mjs</code> unless you relocate the package.</p>
+        <p>Treat the directory as one <strong>compatibility unit</strong>. Never mix kernel, image, or JS from different builds.</p>
+
+        <h2>2. Load the entry script once</h2>
+        <p>Put this in a shared layout so every page you want searchable loads the same module:</p>
+        <pre><code>&lt;script type="module" src="/agentos-search/agentos-search.mjs"&gt;&lt;/script&gt;</code></pre>
+        <p>Default behavior crawls same-origin links starting at <code>/</code>. No config object is required for that default.</p>
+
+        <h2>3. Confirm boot</h2>
+        <ol>
+          <li>Open the site in a modern browser.</li>
+          <li>Press <kbd>⌘K</kbd> or <kbd>Ctrl K</kbd>, or click Search.</li>
+          <li>The palette (or mobile sheet) should open. First visit may show a short boot/crawl status.</li>
+        </ol>
+
+        <div class="callout">
+          <strong>If the palette never opens</strong>
+          Open Network for <code>agentos-search.manifest.json</code> and <code>agentos-search.mjs</code>. You need HTTP 200 and a JavaScript MIME for <code>.mjs</code>. See the host-static and CSP how-tos if those fail.
+        </div>
+
+        <h2>What you installed under the hood</h2>
+        <p>You did not start a search process on a server. You published Wasm kernel bytes, a guest image (<code>search-atlas.tar</code>), ONNX weights, and host/worker JS. The visitor’s browser will create a guest machine, call host tools for fetch/extract/embed, and keep the index in OPFS.</p>
+
+        <h2>Checkpoint</h2>
+        <p>You can open search. Next: <a href="/docs/tutorials/first-search.html">run your first real search</a>.</p>
+
+        <p class="article-nav"><a href="/docs/tutorials/index.html">All tutorials</a> · <a href="/docs/tutorials/first-search.html">Next →</a></p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

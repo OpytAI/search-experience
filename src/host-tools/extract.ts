@@ -4,11 +4,23 @@ import { sanitizeHttpUrl } from "../security/urls.js";
 /**
  * Lightweight HTML extraction for the host tool surface.
  * Only http(s) links and canonicals are retained.
+ *
+ * Titles: first H1 in main content wins (palette labels). Document <title> is
+ * fallback only. Description: meta description, else first substantial block.
  */
 
 const SKIP_TAGS = new Set([
   "script", "style", "template", "noscript", "svg", "canvas", "form", "dialog", "nav", "footer", "header",
 ]);
+
+/** UI chrome that must not enter index body/snippets (docs site + similar layouts). */
+const STRIP_FROM_MAIN = [
+  /<div\b[^>]*\bpage-meta\b[^>]*>[\s\S]*?<\/div>/gi,
+  /<div\b[^>]*\btype-map\b[^>]*>[\s\S]*?<\/div>/gi,
+  /<div\b[^>]*\bhub-columns\b[^>]*>[\s\S]*?<\/div>/gi,
+  /<p\b[^>]*\barticle-nav\b[^>]*>[\s\S]*?<\/p>/gi,
+  /<nav\b[^>]*>[\s\S]*?<\/nav>/gi,
+];
 
 function decodeEntities(text: string): string {
   return text
@@ -64,6 +76,20 @@ function extractMain(html: string): string {
   return body?.[1] ?? html;
 }
 
+/** Drop docs-site chrome that sits inside <main> but is not prose. */
+function scrubMainChrome(fragment: string): string {
+  let out = fragment;
+  for (const re of STRIP_FROM_MAIN) {
+    out = out.replace(re, " ");
+  }
+  // Eyebrow / type label paragraphs (short Diátaxis labels).
+  out = out.replace(
+    /<p\b[^>]*\beyebrow\b[^>]*>[\s\S]*?<\/p>/gi,
+    " ",
+  );
+  return out;
+}
+
 function extractLinks(fragment: string, baseUrl: string): string[] {
   const links: string[] = [];
   const re = /<a\b[^>]*href=["']([^"'#]+)["'][^>]*>/gi;
@@ -74,6 +100,8 @@ function extractLinks(fragment: string, baseUrl: string): string[] {
   }
   return [...new Set(links)];
 }
+
+const DIATAXIS_LABEL = /^(tutorial|tutorials|how-to|howto|reference|explanation|blog|docs|documentation)$/i;
 
 function extractBlocks(fragment: string): ExtractedBlock[] {
   const headings = ["", "", "", "", "", ""];
@@ -91,6 +119,8 @@ function extractBlocks(fragment: string): ExtractedBlock[] {
       for (let i = level; i < 6; i++) headings[i] = "";
       continue;
     }
+    // Skip type labels and other non-prose crumbs.
+    if (text.length < 28 || DIATAXIS_LABEL.test(text)) continue;
     blocks.push({ heading: headings.filter(Boolean).join(" › "), text });
   }
   if (blocks.length === 0) {
@@ -100,13 +130,11 @@ function extractBlocks(fragment: string): ExtractedBlock[] {
   return blocks;
 }
 
-/** First H1 in main content — better list label than a site-wide document title. */
 function extractH1(fragment: string): string {
   const m = fragment.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
   return m ? stripTags(m[1]) : "";
 }
 
-/** Prefer meta description; else first substantial body block (skip eyebrow-length lines). */
 function resolveDescription(metaDescription: string, blocks: readonly ExtractedBlock[]): string {
   if (metaDescription.trim()) return metaDescription.trim();
   for (const block of blocks) {
@@ -128,13 +156,13 @@ export function runSearchExtract(input: SearchExtractInput): SearchExtractOutput
   const base = sanitizeHttpUrl(input.url) ?? input.url;
   const html = input.html ?? "";
   const cleaned = removeSkipped(html);
-  const main = extractMain(cleaned);
+  const main = scrubMainChrome(extractMain(cleaned));
   const blocks = extractBlocks(main);
   const h1 = extractH1(main);
   const docTitle = stripTags(
     cleaned.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "",
   );
-  // List labels should read as the page topic (H1), not the shared site <title>.
+  // H1 is the product label. Document title is last-resort (sites should set title = H1).
   const title = h1 || docTitle || pathFallbackTitle(base);
   const description = resolveDescription(metaContent(cleaned, "description"), blocks);
   const robots = metaContent(cleaned, "robots");

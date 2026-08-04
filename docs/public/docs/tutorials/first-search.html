@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Run your first real search</title>
+    <meta name="description" content="With the package loaded, learn how typing, collections, prefixes, and selection behave—using this documentation site as the live example when the product path is mounted." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html" aria-current="page">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Tutorial</p>
+          <span class="page-path">/docs/tutorials/first-search.html</span>
+        </div>
+        <h1>Run your first real search</h1>
+        <p class="lead">With the package loaded, learn how typing, collections, prefixes, and selection behave—using this documentation site as the live example when the product path is mounted.</p>
+
+        <h2>Open the surface</h2>
+        <p>Keyboard: <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> toggles the dialog. Pointer: use the header Search control. On a narrow viewport the same component becomes a full-viewport sheet with a close control instead of Esc-only chrome.</p>
+
+        <h2>Empty state vs results</h2>
+        <p>With no query, the list stays minimal (“Type to search” when ready). As you type, the worker asks guest <code>/svc/searchd</code> for hits. Status can briefly show loading per collection.</p>
+
+        <h2>Read a hit</h2>
+        <ul>
+          <li><strong>Label</strong> — preferably the page H1 (extract prefers H1 over a shared site <code>&lt;title&gt;</code>).</li>
+          <li><strong>Secondary</strong> — heading, description-like snippet, or path.</li>
+          <li><strong>Preview</strong> (desktop) — title, summary, URL facts for the active row.</li>
+        </ul>
+
+        <h2>Prefixes on this site</h2>
+        <p>When multi-collection config is active (as on this docs site with product assets):</p>
+        <pre><code>docs: architecture
+blog: collections</code></pre>
+        <p>Prefixes scope the <em>query</em> in the palette. They are not a substitute for careful seeds until guest path-prefix enforcement is complete.</p>
+
+        <h2>Navigate and close</h2>
+        <p>Arrow keys move the active row; Enter opens (or your SPA handler runs). Escape closes on desktop. Sheet mode uses the close button when keyboard chips are hidden.</p>
+
+        <h2>Checkpoint</h2>
+        <p>You can find and open a page from the palette. Next: <a href="/docs/tutorials/multi-collection.html">configure two collections end-to-end</a>.</p>
+
+        <p class="article-nav"><a href="/docs/tutorials/index.html">← Install</a> · <a href="/docs/tutorials/multi-collection.html">Next →</a></p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

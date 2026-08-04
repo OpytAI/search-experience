@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSS tokens and parts</title>
+    <meta name="description" content="Theming surface for mc-site-search (non-exhaustive of every internal rule; public contracts below)." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html" aria-current="page">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Reference</p>
+          <span class="page-path">/docs/reference/css-tokens.html</span>
+        </div>
+        <h1>CSS tokens and parts</h1>
+        <p class="lead">Theming surface for <code>mc-site-search</code> (non-exhaustive of every internal rule; public contracts below).</p>
+
+        <h2>Variables</h2>
+        <table class="ref-table">
+          <thead><tr><th>Token</th><th>Use</th></tr></thead>
+          <tbody>
+            <tr><td><code>--mc-search-fg</code> / <code>-secondary</code> / <code>-subtle</code></td><td>Text hierarchy</td></tr>
+            <tr><td><code>--mc-search-surface</code>, <code>-elevated</code>, <code>-substrate</code></td><td>Panels</td></tr>
+            <tr><td><code>--mc-search-border</code>, <code>-focus</code>, <code>-active-bg</code>, <code>-active-fg</code></td><td>Chrome and selection</td></tr>
+            <tr><td><code>--mc-search-width</code>, <code>-max-height</code>, <code>-top</code>, <code>-radius</code></td><td>Palette geometry</td></tr>
+            <tr><td><code>--mc-search-preview-width</code>, <code>-row-height</code>, <code>-shadow</code>, <code>-backdrop</code></td><td>Layout / modality</td></tr>
+            <tr><td><code>--mc-search-font</code>, <code>-font-mono</code></td><td>Typography</td></tr>
+            <tr><td><code>--mc-search-vvh</code>, <code>-vvt</code></td><td>Set by sheet mode from visualViewport</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Parts (stable hooks)</h2>
+        <p><code>launcher</code>, <code>dialog</code>, <code>input-row</code>, <code>input</code>, <code>input-actions</code>, <code>close</code>, <code>body</code>, <code>list</code>, <code>preview</code>, <code>footer</code>, <code>powered-by</code>, <code>option</code>, <code>collection</code>.</p>
+
+        <h2>Host attributes</h2>
+        <p><code>open</code>, <code>layout="palette|sheet"</code>, <code>disabled</code>, <code>show-launcher</code>, <code>preserve-query</code>.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

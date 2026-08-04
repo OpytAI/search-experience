@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configuration</title>
+    <meta name="description" content="Integrator config is globalThis.AgentOSSearch ( SearchExperienceOptions ), evaluated before agentos-search.mjs ." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html" aria-current="page">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Reference</p>
+          <span class="page-path">/docs/reference/configuration.html</span>
+        </div>
+        <h1>Configuration</h1>
+        <p class="lead">Integrator config is <code>globalThis.AgentOSSearch</code> (<code>SearchExperienceOptions</code>), evaluated before <code>agentos-search.mjs</code>.</p>
+
+        <h2>Top-level options</h2>
+        <table class="ref-table">
+          <thead><tr><th>Option</th><th>Type</th><th>Default</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>collections</code></td><td><code>BrowserCrawlDefinition[]</code></td><td>one site-wide collection</td><td>Crawl + palette sections</td></tr>
+            <tr><td><code>autoMount</code></td><td>boolean</td><td>true</td><td>Create element if missing</td></tr>
+            <tr><td><code>showLauncher</code></td><td>boolean</td><td>true</td><td>Show launcher control</td></tr>
+            <tr><td><code>assetBase</code></td><td>string | URL</td><td>entry script directory</td><td>Asset root</td></tr>
+            <tr><td><code>manifestUrl</code></td><td>string | URL</td><td>manifest under assetBase</td><td>Manifest override</td></tr>
+            <tr><td><code>refreshAfterMs</code></td><td>number</td><td>unset</td><td>Re-crawl interval; clamped 60_000…604_800_000 when set</td></tr>
+          </tbody>
+        </table>
+
+        <h2>BrowserCrawlDefinition</h2>
+        <table class="ref-table">
+          <thead><tr><th>Field</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code>, <code>label</code></td><td>Required identity and palette heading</td></tr>
+            <tr><td><code>seeds</code></td><td>Required non-empty start URLs</td></tr>
+            <tr><td><code>order</code>, <code>prefix</code>, <code>placeholder</code>, <code>emptyStateLabel</code></td><td>UI</td></tr>
+            <tr><td><code>minQueryLength</code>, <code>limit</code></td><td>Query gating and result cap</td></tr>
+            <tr><td><code>origins</code></td><td>Only same-origin as page stick on visitor path</td></tr>
+            <tr><td><code>includePathPrefixes</code>, <code>excludePathPrefixes</code></td><td>Policy fields (enforce in guest as implemented)</td></tr>
+            <tr><td><code>maxPages</code>, <code>maxQueue</code>, <code>maxPageBytes</code>, <code>timeoutMs</code>, <code>maxSitemaps</code></td><td>Budgets / fetch bounds</td></tr>
+            <tr><td><code>language</code></td><td>Optional language hint</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Default collection</h2>
+        <p><code>id: "site"</code>, seeds <code>["/"]</code>, label from <code>document.title</code> or hostname when collections omitted.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

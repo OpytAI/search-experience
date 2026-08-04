@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hybrid ranking</title>
+    <meta name="description" content="Lexical FTS5 and semantic VANN are fused with reciprocal rank fusion inside the guest." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html" aria-current="page">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Explanation</p>
+          <span class="page-path">/docs/explanation/hybrid-ranking.html</span>
+        </div>
+        <h1>Hybrid ranking</h1>
+        <p class="lead">Lexical FTS5 and semantic VANN are fused with reciprocal rank fusion inside the guest.</p>
+
+        <h2>Lexical</h2>
+        <p>Queries use FTS5 MATCH (prefix tokens via safe query builders). Fallback LIKE paths exist when FTS returns empty in degraded situations. Snippets prefer page description when present, else a body prefix ordered so short “eyebrow” lines are not first.</p>
+
+        <h2>Semantic</h2>
+        <p>Documents embed as Mixedbread-formatted text (title, heading, body). Vectors are 384-d cosine in VANN, partitioned by collection. Query embed goes through the same host tool when the guest does not receive a precomputed vector.</p>
+
+        <h2>Fusion</h2>
+        <p>RRF combines ranked lists with configurable k, candidate limits, and per-page diversity caps before the final limit. Hits expose match mode and optional lexical/semantic ranks for UI honesty.</p>
+
+        <h2>Progressive UI</h2>
+        <p>The worker may publish lexical results before hybrid refinement completes. The palette keeps selection stable by collectionId+id across reorderings.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

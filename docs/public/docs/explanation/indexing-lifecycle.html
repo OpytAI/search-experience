@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Indexing lifecycle</title>
+    <meta name="description" content="From empty OPFS to lexical-ready, optional semantic-ready, and refresh without blocking queries." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html" aria-current="page">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">Explanation</p>
+          <span class="page-path">/docs/explanation/indexing-lifecycle.html</span>
+        </div>
+        <h1>Indexing lifecycle</h1>
+        <p class="lead">From empty OPFS to lexical-ready, optional semantic-ready, and refresh without blocking queries.</p>
+
+        <h2>Cold start</h2>
+        <ol>
+          <li><code>configure</code> installs collections, schema, fingerprints.</li>
+          <li><code>crawl_step</code> loops: dequeue URL, host fetch, host extract, insert pages/chunks into <strong>active</strong> <code>index.db</code> when not in candidate mode.</li>
+          <li><code>embed_step</code> embeds pending chunks; VANN rows appear; <code>semanticReady</code> only when the guest can honestly claim it.</li>
+          <li>Checkpoints mark lexical/semantic/idle durability points for restore logic.</li>
+        </ol>
+
+        <h2>Refresh</h2>
+        <p><code>refresh</code> opens a candidate generation on <code>candidate.db</code> while queries still read <code>index.db</code>. When the candidate has pages ≥ 1 and chunks ≥ 1 (and is not truncated), promote copies candidate → active and clears candidate.</p>
+
+        <h2>Why two files</h2>
+        <p>Readers should not observe a half-built index mid-refresh. Dual databases make “always query active” a structural property rather than a locking hope.</p>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

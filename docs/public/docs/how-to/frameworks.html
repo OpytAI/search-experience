@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wire Next.js, Vite, Nuxt, and static hosts</title>
+    <meta name="description" content="Unpack into each stack’s static directory and load a real browser module—not a server-only import." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/frameworks.html</span>
+        </div>
+        <h1>Wire Next.js, Vite, Nuxt, and static hosts</h1>
+        <p class="lead">Unpack into each stack’s static directory and load a real browser module—not a server-only import.</p>
+
+        <h2>Vite / Nuxt / Astro / plain static</h2>
+        <pre><code>tar -xf release.tar -C public
+# index.html or layout:
+&lt;script type="module" src="/agentos-search/agentos-search.mjs"&gt;&lt;/script&gt;</code></pre>
+
+        <h2>Next.js App Router</h2>
+        <p>Load once from the root layout with <code>next/script</code> or a normal module script. Config in <code>beforeInteractive</code> if needed; module in <code>afterInteractive</code>:</p>
+        <pre><code>import Script from "next/script";
+// in RootLayout body:
+&lt;Script id="aos-cfg" strategy="beforeInteractive"&gt;
+  {`globalThis.AgentOSSearch = globalThis.AgentOSSearch || {};`}
+&lt;/Script&gt;
+&lt;Script type="module" src="/agentos-search/agentos-search.mjs" strategy="afterInteractive" /&gt;</code></pre>
+        <p>Avoid self-closing tags that never execute in the browser. Unpack into <code>public/</code>.</p>
+
+        <h2>Hugo / SvelteKit</h2>
+        <p>Unpack into <code>static/</code> (or Hugo’s static dir). Add the module script to the base template.</p>
+
+        <h2>This monorepo’s docs site</h2>
+        <pre><code>bazel run //docs:dev
+# builds //:release when needed and stages docs/public/agentos-search/</code></pre>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

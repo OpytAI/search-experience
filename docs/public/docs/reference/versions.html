@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why collections exist</title>
-    <meta name="description" content="Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank." />
+    <title>Protocol versions</title>
+    <meta name="description" content="Constants in src/protocol/versions.ts . Bump only with coordinated host, guest, and manifest changes." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -21,9 +21,9 @@
         <a href="/">Home</a>
         <a href="/docs/tutorials/index.html">Tutorials</a>
         <a href="/docs/how-to/index.html">How-to</a>
-        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/reference/index.html" aria-current="page">Reference</a>
         <a href="/docs/explanation/index.html">Explanation</a>
-        <a href="/blog/index.html" aria-current="page">Blog</a>
+        <a href="/blog/index.html">Blog</a>
       </nav>
       <mc-site-search placeholder="Search documentation"></mc-site-search>
     </header>
@@ -31,20 +31,22 @@
     <main class="site-main">
       <article class="article">
         <div class="page-meta">
-          <p class="eyebrow">Blog</p>
-          <span class="page-path">/blog/collections.html</span>
+          <p class="eyebrow">Reference</p>
+          <span class="page-path">/docs/reference/versions.html</span>
         </div>
-        <h1>Why collections exist</h1>
-        <p class="lead">Documentation and blog are not the same mental pile. Collections keep that honesty in crawl and UI without teaching the host to rank.</p>
+        <h1>Protocol versions</h1>
+        <p class="lead">Constants in <code>src/protocol/versions.ts</code>. Bump only with coordinated host, guest, and manifest changes.</p>
 
-        <h2>The product pressure</h2>
-        <p>Integrators ask for “search everything” and “but not like one bag of URLs.” Those are both true. Flat indexes force people into brittle query tricks; overbuilt host rankers invent policy that should live next to the index.</p>
-
-        <h2>The cut we chose</h2>
-        <p>A collection is seeds + presentation + optional prefix. The guest still owns generations and fusion. This docs site is itself the demo: <code>docs:</code> and <code>blog:</code> are real scopes over the pages you are reading.</p>
-
-        <h2>What we still refuse</h2>
-        <p>Host-side section boosts, security cosplay with unenforced prefixes, and treating the service worker as a crawler. Configure seeds as if they matter.</p>
+        <table class="ref-table">
+          <thead><tr><th>Constant</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td><code>SEARCH_PROTOCOL_VERSION</code></td><td>Page ↔ runtime worker envelopes</td></tr>
+            <tr><td><code>SEARCHD_PROTOCOL_VERSION</code></td><td>Host ↔ guest searchd JSON</td></tr>
+            <tr><td><code>MANIFEST_SCHEMA_VERSION</code></td><td>Distribution manifest layout</td></tr>
+            <tr><td><code>SNAPSHOT_FORMAT_VERSION</code></td><td>OPFS / MCSN metadata</td></tr>
+          </tbody>
+        </table>
+        <p>Service name: <code>searchd</code>. Host tool addresses and names are also exported from the same module family for a single import path.</p>
 
 
       </article>
@@ -58,7 +60,7 @@
           <a href="/docs/how-to/index.html">How-to</a>
           <a href="/docs/reference/index.html">Reference</a>
           <a href="/docs/explanation/index.html">Explanation</a>
-          <a href="/blog/index.html" aria-current="page">Blog</a>
+          <a href="/blog/index.html">Blog</a>
         </nav>
       </div>
     </footer>

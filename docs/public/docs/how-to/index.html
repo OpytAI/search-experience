@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How-to guides</title>
+    <meta name="description" content="Goal-oriented procedures. Each page assumes you know the product exists and need to accomplish one job." />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/logo.svg" width="28" height="28" alt="" />
+        <span class="brand-text">
+          AgentOS Search
+          <small>docs</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/docs/tutorials/index.html">Tutorials</a>
+        <a href="/docs/how-to/index.html" aria-current="page">How-to</a>
+        <a href="/docs/reference/index.html">Reference</a>
+        <a href="/docs/explanation/index.html">Explanation</a>
+        <a href="/blog/index.html">Blog</a>
+      </nav>
+      <mc-site-search placeholder="Search documentation"></mc-site-search>
+    </header>
+
+    <main class="site-main">
+      <article class="article">
+        <div class="page-meta">
+          <p class="eyebrow">How-to</p>
+          <span class="page-path">/docs/how-to/</span>
+        </div>
+        <h1>How-to guides</h1>
+        <p class="lead">Goal-oriented procedures. Each page assumes you know the product exists and need to accomplish one job.</p>
+
+        <ul class="index-list">
+            <li>
+              <a href="/docs/how-to/index.html">
+                <span class="index-path">/docs/how-to/host-static.html</span>
+                <span class="index-title">Host on a static origin</span>
+                <span class="index-desc">MIME, paths, reverse proxies.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/csp.html">
+                <span class="index-path">/docs/how-to/csp.html</span>
+                <span class="index-title">Set Content-Security-Policy</span>
+                <span class="index-desc">script-src, worker-src, blob, wasm.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/configure-collections.html">
+                <span class="index-path">/docs/how-to/configure-collections.html</span>
+                <span class="index-title">Configure collections</span>
+                <span class="index-desc">Seeds, prefixes, order, refresh.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/place-launcher.html">
+                <span class="index-path">/docs/how-to/place-launcher.html</span>
+                <span class="index-title">Place the launcher yourself</span>
+                <span class="index-desc">autoMount false and custom markup.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/theme.html">
+                <span class="index-path">/docs/how-to/theme.html</span>
+                <span class="index-title">Theme the palette</span>
+                <span class="index-desc">CSS variables and sheet vs palette.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/frameworks.html">
+                <span class="index-path">/docs/how-to/frameworks.html</span>
+                <span class="index-title">Wire Next.js, Vite, and friends</span>
+                <span class="index-desc">Where to unpack and load the module.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/prewarm.html">
+                <span class="index-path">/docs/how-to/prewarm.html</span>
+                <span class="index-title">Prewarm a gzip MCSN</span>
+                <span class="index-desc">Capture and inject snapshots.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/debug-search.html">
+                <span class="index-path">/docs/how-to/debug-search.html</span>
+                <span class="index-title">Debug empty or wrong results</span>
+                <span class="index-desc">Network, OPFS, seeds, CSP.</span>
+              </a>
+            </li>
+            <li>
+              <a href="/docs/how-to/upgrade.html">
+                <span class="index-path">/docs/how-to/upgrade.html</span>
+                <span class="index-title">Upgrade the package safely</span>
+                <span class="index-desc">Replace the whole tree; expect cold boot.</span>
+              </a>
+            </li>
+        </ul>
+
+
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>AgentOS site search documentation</span>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/docs/tutorials/index.html">Tutorials</a>
+          <a href="/docs/how-to/index.html">How-to</a>
+          <a href="/docs/reference/index.html">Reference</a>
+          <a href="/docs/explanation/index.html">Explanation</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

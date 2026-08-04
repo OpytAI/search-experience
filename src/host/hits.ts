@@ -11,7 +11,14 @@ function pathLabel(href: string): string {
   }
 }
 
-/** Map searchd hits to palette items; filters non-http(s) and optional same-origin. */
+function collapseWs(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Map searchd hits to palette items; filters non-http(s) and optional same-origin.
+ * Label = page title (H1 at index time). Secondary = description/snippet, not chrome.
+ */
 export function hitsToItems(
   hits: NonNullable<Extract<SearchdResponse, { ok: true }>["hits"]>,
   pageOrigin?: string,
@@ -27,17 +34,28 @@ export function hitsToItems(
       }
     }
     const path = pathLabel(href);
-    const heading = hit.heading?.trim() ?? "";
-    const snippet = hit.snippet?.trim() ?? "";
-    // Prefer section/snippet; fall back to path so mobile rows stay disambiguated.
-    const secondary = heading || snippet || path;
-    const description = snippet || heading || path;
+    const title = collapseWs(hit.title ?? "");
+    const heading = collapseWs(hit.heading ?? "");
+    const snippet = collapseWs(hit.snippet ?? "");
+
+    // Prefer section heading only when it adds info beyond the title.
+    let secondary = "";
+    if (heading && heading.toLowerCase() !== title.toLowerCase()) {
+      secondary = heading;
+    } else if (snippet && !snippet.toLowerCase().startsWith(title.toLowerCase())) {
+      secondary = snippet;
+    } else if (snippet) {
+      secondary = snippet;
+    } else {
+      secondary = path;
+    }
+
     return [{
       id: hit.id,
       collectionId: hit.collectionId,
       kind: "page",
-      label: (hit.title?.trim() || path || href),
-      title: hit.title,
+      label: title || path || href,
+      title: title || undefined,
       secondary,
       meta: secondary === path ? undefined : path,
       href,
@@ -55,13 +73,13 @@ export function hitsToItems(
       },
       preview: {
         eyebrow: hit.collectionId,
-        title: hit.title || path,
-        description,
+        title: title || path,
+        description: snippet || heading || path,
         url: href,
         kind: "page",
         facts: [
           { label: "URL", value: href },
-          ...(heading ? [{ label: "Section", value: heading }] : []),
+          ...(heading && heading !== title ? [{ label: "Section", value: heading }] : []),
         ],
       },
     } satisfies SearchItem];

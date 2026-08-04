@@ -19,3 +19,9 @@ export {
   resolveActiveKey,
   type RecentEntry,
 } from "./recents.js";
+export {
+  bestCollectionAffinity,
+  bestCollectionScore,
+  itemQueryAffinity,
+  rankCollectionStatesForQuery,
+} from "./collection-rank.js";

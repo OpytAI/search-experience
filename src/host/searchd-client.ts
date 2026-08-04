@@ -21,7 +21,7 @@ export interface SearchdVm {
   fs?: {
     write?(path: string, data: string | Uint8Array): Promise<void> | void;
     read?(path: string): Promise<Uint8Array | string> | Uint8Array | string;
-    mkdir?(path: string, recursive?: boolean): Promise<void> | void;
+    mkdir?(path: string): Promise<void> | void;
   };
 }
 
