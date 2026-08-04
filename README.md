@@ -51,7 +51,7 @@ Build from this repo, take a GitHub Release asset, or a CI artifact:
 bazel build //:release
 # → bazel-bin/release.tar
 
-# from a published release (after a cut)
+# from a published GitHub release
 # curl -fsSL -o release.tar \
 #   https://github.com/OpytAI/search-experience/releases/download/vX.Y.Z/release.tar
 # curl -fsSL -o SHA256SUMS \
