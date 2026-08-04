@@ -1,13 +1,27 @@
-# AgentOS site search
+<div align="center">
+  <h1>AgentOS site search</h1>
 
-Drop-in, same-origin **site search** for static sites and app frontends. Unpack a small package next to your pages, add one script tag, and visitors get a command-palette search (**⌘K** / **Ctrl+K**) that crawls and indexes your site **in the browser**.
+  <p><strong>Drop-in search for your site — no server needed.</strong></p>
 
-No search server. No third-party index. No server-side crawl job. Policy, indexing, and ranking live in a guest service (`/svc/searchd`); the host only fetches pages, extracts text, and embeds.
+  <p>
+    Unpack next to your pages, add one script tag, and visitors get a command-palette
+    search over <em>your</em> content. No separate backend. No third-party index.
+  </p>
 
-| Audience | Start here |
-| --- | --- |
-| **Site owners / frontend** | [Install on your site](#install-on-your-site) |
-| **Maintainers of this repo** | [For developers](#for-developers) · [System guide](#system-guide) |
+  <p>
+    <a href="./LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
+    <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-informational">
+    <img alt="Runtime: Browser" src="https://img.shields.io/badge/runtime-Browser-654ff0">
+    <a href="https://github.com/NarendraPatwardhan/agent-os"><img alt="Built on AgentOS" src="https://img.shields.io/badge/built%20on-AgentOS-f5c542"></a>
+  </p>
+
+  <p>
+    <a href="#install-on-your-site">Install</a> ·
+    <a href="#configuration">Configuration</a> ·
+    <a href="#for-developers">Developers</a> ·
+    <a href="#system-guide">System guide</a>
+  </p>
+</div>
 
 ---
 

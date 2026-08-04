@@ -35,5 +35,3 @@ coverage/
 .env.*
 !.env.example
 
-# Private working notes and non-public design material (not for VCS)
-/references/
