@@ -81,6 +81,47 @@ export class SearchWorkerClient {
     return requestId;
   }
 
+  /** Request local resource diagnostics (no UI ranking lab). */
+  diagnostics(): string {
+    const requestId = this.requestId();
+    this.post({ protocol: SEARCH_PROTOCOL_VERSION, type: "diagnostics", requestId });
+    return requestId;
+  }
+
+  /** Capture a warm MCSN snapshot from the live guest (publisher / e2e). */
+  exportSnapshot(timeoutMs = 120_000): Promise<{
+    bytes: Uint8Array;
+    meta: import("../protocol/snapshot.js").SnapshotCompatibility;
+  }> {
+    const requestId = this.requestId();
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(`exportSnapshot timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.listeners.delete(listener);
+      };
+      const listener = (message: RuntimeToPageMessage) => {
+        if (message.type === "snapshot" && message.requestId === requestId) {
+          cleanup();
+          const binary = atob(message.snapshotBase64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          resolve({ bytes, meta: message.meta });
+          return;
+        }
+        if (message.type === "error" && message.requestId === requestId) {
+          cleanup();
+          reject(new Error(message.message));
+        }
+      };
+      this.listeners.add(listener);
+      this.post({ protocol: SEARCH_PROTOCOL_VERSION, type: "exportSnapshot", requestId });
+    });
+  }
+
   makeProviderCollections(
     descriptors: readonly CrawlCollectionDescriptor[],
   ): SearchCollection[] {
@@ -115,9 +156,11 @@ export class SearchWorkerClient {
         this.listeners.delete(listener);
         context.signal.removeEventListener("abort", onAbort);
       };
+      // progress = staged lexical (then optional hybrid) paints; results = final settle.
+      // Palette preserves activeKey by stable id across publish + resolve reorders.
       const listener = (message: RuntimeToPageMessage) => {
         if (message.type === "progress" && message.requestId === requestId) {
-          context.publish?.(message.items);
+          context.publish?.([...message.items]);
           return;
         }
         if (message.type === "results" && message.requestId === requestId) {

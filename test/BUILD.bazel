@@ -37,6 +37,24 @@ search_command_test(
     fixed_args = ["test/contracts.test.ts"],
 )
 
+search_command_test(
+    name = "guest_policy_test",
+    chdir = ".",
+    fixed_args = ["test/guest-policy.test.ts"],
+)
+
+search_command_test(
+    name = "reattach_test",
+    chdir = ".",
+    fixed_args = ["test/reattach.test.ts"],
+)
+
+search_command_test(
+    name = "e2e_smoke_test",
+    chdir = ".",
+    fixed_args = ["test/e2e-smoke.test.ts"],
+)
+
 test_suite(
     name = "unit",
     tests = [
@@ -45,5 +63,8 @@ test_suite(
         ":search_ui_test",
         ":searchd_client_test",
         ":contracts_test",
+        ":guest_policy_test",
+        ":reattach_test",
+        ":e2e_smoke_test",
     ],
 )

@@ -19,11 +19,15 @@ package(default_visibility = ["//visibility:public"])
 
 pkg_tar(
     name = "product_dirs",
-    create_parents = False,
+    # Explicit parent + leaf so TarFs has a real /var directory node (not only
+    # var/searchd/). Missing parent caused control-channel mkdir ENOTDIR (20).
+    create_parents = True,
     empty_dirs = [
+        "var",
         "var/searchd",
     ],
     modes = {
+        "var": "0755",
         "var/searchd": "0755",
     },
     owner = "0.0",

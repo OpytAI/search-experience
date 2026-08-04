@@ -25,17 +25,26 @@ import {
   SEARCHD_PROTOCOL_VERSION,
   SNAPSHOT_FORMAT_VERSION,
 } from "../protocol/versions.js";
+import {
+  configureResumeAllowed,
+  decideResume,
+  evaluateSearchdStatusProbe,
+  semanticClaimAllowed,
+} from "../host/reattach-checks.js";
 import { SearchdClient } from "../host/searchd-client.js";
 import { hitsToItems } from "../host/hits.js";
 import {
   bootSearchVm,
+  captureMcsn,
   persistSnapshot,
   waitForQuiescence,
   type McCoreModule,
   type SearchVm,
   type ContentStore,
 } from "../host/vm-boot.js";
+import { encodeMcsnPayload, MCSN_PAYLOAD_ENCODING } from "../protocol/mcsn-codec.js";
 import type { HostToolRuntime } from "../host-tools/register.js";
+import { isPrivateHostname } from "../host-tools/fetch.js";
 import { isSameOrigin } from "../security/urls.js";
 
 import {
@@ -45,6 +54,8 @@ import {
   importMcCore,
   verifyModelAssets,
 } from "./assets.js";
+import { buildDiagnostics } from "./diagnostics.js";
+import { withIndexLock } from "./indexing-lock.js";
 
 function post(message: RuntimeToPageMessage): void {
   self.postMessage(message);
@@ -71,6 +82,12 @@ let configuredRefreshAfterMs: number | undefined;
 let initCompleted = false;
 let lastStatus: SearchdStatusBody | undefined;
 let lastRestoreError: string | undefined;
+/** Wall time from init start to ready/indexing kickoff (ms). */
+let bootMs: number | undefined;
+/** Last successful or failed query latency in this worker (ms). */
+let lastQueryMs: number | undefined;
+/** Status probe succeeded after boot (serviceCall path alive). */
+let statusProbeOk = false;
 const cancelled = new Set<string>();
 const MAX_CANCELLED = 256;
 
@@ -114,7 +131,16 @@ function scheduleRefresh(refreshAfterMs: number | undefined = configuredRefreshA
   }, delay);
 }
 
-/** In-tab single-flight; prefer cross-tab Web Locks when available. */
+/**
+ * Exclusive index mutation across tabs.
+ *
+ * Leader holds navigator.locks `agentos-search-index` for the entire
+ * driveCrawl / driveEmbed / handleRefresh path (guest promote on candidate
+ * completion runs under that same crawl). Readers (query/status/diagnostics)
+ * never acquire the lock, so they keep serving the active generation while
+ * another tab rebuilds a candidate — avoiding double-promote races on shared
+ * OPFS candidate.db / index.db.
+ */
 function runIndexing(task: () => Promise<void>): Promise<void> {
   const start = (): Promise<void> => {
     if (indexPromise) return indexPromise;
@@ -123,13 +149,7 @@ function runIndexing(task: () => Promise<void>): Promise<void> {
     });
     return indexPromise;
   };
-  const locks = (globalThis as unknown as {
-    navigator?: { locks?: { request: (name: string, opts: object, cb: () => Promise<void>) => Promise<void> } };
-  }).navigator?.locks;
-  if (locks?.request) {
-    return locks.request("agentos-search-index", { mode: "exclusive" }, () => start());
-  }
-  return start();
+  return withIndexLock(start);
 }
 
 async function driveCrawl(): Promise<void> {
@@ -241,6 +261,39 @@ async function driveEmbed(): Promise<void> {
   });
 }
 
+function buildSnapshotMeta(
+  kind: "lexical" | "semantic",
+  source: "browser" | "publisher" = "browser",
+  mcsn?: { kind: "full" | "incremental" },
+): SnapshotCompatibility {
+  return {
+    format: SNAPSHOT_FORMAT_VERSION,
+    compatibilityKey,
+    searchdProtocol: SEARCHD_PROTOCOL_VERSION,
+    kernelSha256: kernelSha,
+    imageSha256: imageSha,
+    schemaSha256: schemaSha,
+    modelFingerprint,
+    configurationHash: configHash,
+    activeGeneration: lastStatus?.activeGeneration ?? "gen-1",
+    lexicalReady: Boolean(lastStatus?.lexicalReady) || kind === "lexical" || kind === "semantic",
+    semanticReady: kind === "semantic" || Boolean(lastStatus?.semanticReady),
+    builtAt: new Date().toISOString(),
+    encoding: MCSN_PAYLOAD_ENCODING,
+    mcsnKind: mcsn?.kind ?? "full",
+    provenance: { source, pageOrigin: pageOrigin || undefined },
+  };
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 async function captureSnapshot(kind: "lexical" | "semantic"): Promise<void> {
   if (!vm || !store || !compatibilityKey) return;
   try {
@@ -249,27 +302,80 @@ async function captureSnapshot(kind: "lexical" | "semantic"): Promise<void> {
       console.warn("search snapshot skipped: guest egress not quiescent");
       return;
     }
-    const bytes = await vm.snapshot();
-    const snapshotSha256 = await sha256(bytes);
-    const meta: SnapshotCompatibility = {
-      format: SNAPSHOT_FORMAT_VERSION,
-      compatibilityKey,
-      searchdProtocol: SEARCHD_PROTOCOL_VERSION,
-      kernelSha256: kernelSha,
-      imageSha256: imageSha,
-      schemaSha256: schemaSha,
-      modelFingerprint,
-      configurationHash: configHash,
-      activeGeneration: lastStatus?.activeGeneration ?? "gen-1",
-      lexicalReady: true,
-      semanticReady: kind === "semantic" || Boolean(lastStatus?.semanticReady),
-      builtAt: new Date().toISOString(),
-      snapshotSha256,
-      provenance: { source: "browser" },
-    };
-    await persistSnapshot(store, snapshotKey, snapshotMetaKey, bytes, meta);
+    const captured = await captureMcsn(vm, store);
+    const meta = buildSnapshotMeta(kind, "browser", { kind: captured.kind });
+    // persistSnapshot gzip-encodes and stamps snapshotSha256 on stored meta.
+    await persistSnapshot(store, snapshotKey, snapshotMetaKey, captured.bytes, meta);
   } catch {
     console.warn("search snapshot failed");
+  }
+}
+
+/** Export MCSN bytes + meta to the page (publisher / e2e). */
+async function handleExportSnapshot(
+  message: Extract<PageToRuntimeMessage, { type: "exportSnapshot" }>,
+): Promise<void> {
+  if (!vm || !compatibilityKey || !store) {
+    post({
+      protocol: SEARCH_PROTOCOL_VERSION,
+      type: "error",
+      requestId: message.requestId,
+      code: "not_ready",
+      message: "exportSnapshot requires an initialized VM",
+    });
+    return;
+  }
+  try {
+    const quiet = await waitForQuiescence(vm, 8_000);
+    if (!quiet) {
+      post({
+        protocol: SEARCH_PROTOCOL_VERSION,
+        type: "error",
+        requestId: message.requestId,
+        code: "busy",
+        message: "guest egress not quiescent",
+      });
+      return;
+    }
+    const captured = await captureMcsn(vm, store);
+    const kind = lastStatus?.semanticReady ? "semantic" : "lexical";
+    const baseMeta = buildSnapshotMeta(kind, "publisher", { kind: captured.kind });
+    let encoded: Uint8Array;
+    let meta: SnapshotCompatibility;
+    if (snapshotKey && snapshotMetaKey) {
+      const persisted = await persistSnapshot(
+        store,
+        snapshotKey,
+        snapshotMetaKey,
+        captured.bytes,
+        baseMeta,
+      );
+      encoded = persisted.encoded;
+      meta = persisted.meta;
+    } else {
+      encoded = await encodeMcsnPayload(captured.bytes);
+      meta = {
+        ...baseMeta,
+        encoding: MCSN_PAYLOAD_ENCODING,
+        uncompressedBytes: captured.bytes.byteLength,
+        snapshotSha256: await sha256(encoded),
+      };
+    }
+    post({
+      protocol: SEARCH_PROTOCOL_VERSION,
+      type: "snapshot",
+      requestId: message.requestId,
+      snapshotBase64: bytesToBase64(encoded),
+      meta,
+    });
+  } catch (error) {
+    post({
+      protocol: SEARCH_PROTOCOL_VERSION,
+      type: "error",
+      requestId: message.requestId,
+      code: "snapshot_failed",
+      message: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -296,6 +402,8 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
     return;
   }
 
+  const bootStartedAt = Date.now();
+
   post({
     protocol: SEARCH_PROTOCOL_VERSION,
     type: "status",
@@ -319,6 +427,7 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
     message: "Booting AgentOS search machine…",
   });
 
+  // Integrity failure rejects init (fail closed) — verifiedBytes throws.
   const [kernel, image, schemaText] = await Promise.all([
     verifiedBytes(base, manifest.assets.kernel, "kernel"),
     verifiedBytes(base, manifest.assets.image, "image"),
@@ -400,6 +509,23 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
       }
     : null;
 
+  // Optional release-package prewarm (manifest.assets.snapshot): seed restore when OPFS is empty.
+  let prewarmedSnapshot: Uint8Array | null = null;
+  let prewarmedSnapshotMeta: SnapshotCompatibility | null = null;
+  if (manifest.assets.snapshot) {
+    try {
+      prewarmedSnapshot = await verifiedBytes(base, manifest.assets.snapshot, "snapshot");
+      if (manifest.assets.snapshotMetadata) {
+        const metaText = await verifiedText(base, manifest.assets.snapshotMetadata, "snapshotMetadata");
+        prewarmedSnapshotMeta = JSON.parse(metaText) as SnapshotCompatibility;
+      }
+    } catch {
+      console.warn("prewarmed snapshot asset load failed; continuing with OPFS/cold boot");
+      prewarmedSnapshot = null;
+      prewarmedSnapshotMeta = null;
+    }
+  }
+
   const boot = await bootSearchVm({
     mcCore,
     assets: {
@@ -409,14 +535,22 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
       schemaSql,
     },
     allowedOrigins,
-    // Same-origin localhost demos: allow private only when page origin is private.
-    allowPrivateAddresses: false,
+    // Same-origin private/loopback page origins must fetch their own site.
+    allowPrivateAddresses: (() => {
+      try {
+        return isPrivateHostname(new URL(message.pageOrigin).hostname);
+      } catch {
+        return false;
+      }
+    })(),
     embedOptions,
     embedderFactory,
     modelFingerprint,
     snapshotKey,
     snapshotMetaKey,
     expectedCompatibilityKey: compatibilityKey,
+    prewarmedSnapshot,
+    prewarmedSnapshotMeta,
   });
   vm = boot.vm;
   store = boot.store;
@@ -433,8 +567,38 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
   }
   searchd = new SearchdClient(vm, "serviceCall");
 
-  const resume = Boolean(boot.restored && boot.snapshotMeta?.lexicalReady
-    && boot.snapshotMeta.compatibilityKey === compatibilityKey);
+  // Strict reattachment: prove serviceCall("searchd", status) works before ready.
+  const probeResponse = await callSearchd({
+    v: SEARCHD_PROTOCOL_VERSION,
+    op: "status",
+    id: nextSearchdId("probe"),
+  });
+  const probe = evaluateSearchdStatusProbe(
+    probeResponse.ok
+      ? { ok: true, status: probeResponse.status }
+      : { ok: false, error: probeResponse.error },
+  );
+  statusProbeOk = probe.probeOk;
+  if (!probe.probeOk) {
+    throw new Error(
+      `searchd reattachment failed: ${probe.error ?? "status probe failed"} — refusing ready`,
+    );
+  }
+
+  const resumeDecision = decideResume({
+    restored: boot.restored,
+    expectedCompatibilityKey: compatibilityKey,
+    snapshotMeta: boot.snapshotMeta,
+    restoreError: boot.restoreError,
+    expectedKernelSha256: kernelSha,
+    expectedImageSha256: imageSha,
+  });
+  // Fail closed: never resume after failed restore or bad compatibility.
+  const resume = configureResumeAllowed(
+    resumeDecision.resume,
+    Boolean(boot.restoreError) || !boot.restored,
+    resumeDecision.resume,
+  );
 
   const configure = await callSearchd({
     v: SEARCHD_PROTOCOL_VERSION,
@@ -451,10 +615,24 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
       resume,
     },
   });
-  if (!configure.ok) throw new Error(configure.error);
+  if (!configure.ok) {
+    // Fail closed on configure errors (including bad compatibility on cold path).
+    throw new Error(
+      resume
+        ? `searchd configure failed on resume: ${configure.error}`
+        : `searchd configure failed (cold/fail-closed): ${configure.error}`,
+    );
+  }
+
+  bootMs = Date.now() - bootStartedAt;
 
   if (resume && configure.status?.lexicalReady) {
-    lastStatus = configure.status;
+    // Trust guest semantic claim only via successful status/configure body.
+    const semanticReady = semanticClaimAllowed(true, configure.status);
+    lastStatus = {
+      ...configure.status,
+      semanticReady,
+    };
     post({
       protocol: SEARCH_PROTOCOL_VERSION,
       type: "ready",
@@ -462,7 +640,7 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
       collections: configure.status.collections,
       phase: configure.status.phase,
     });
-    if (!configure.status.semanticReady) {
+    if (!semanticReady) {
       void runIndexing(async () => {
         await driveEmbed();
       });
@@ -470,6 +648,15 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
     initCompleted = true;
     scheduleRefresh(message.refreshAfterMs);
     return;
+  }
+
+  // Cold path (or resume rejected): do not claim semantic ready from stale probe.
+  if (configure.status) {
+    lastStatus = {
+      ...configure.status,
+      lexicalReady: Boolean(configure.status.lexicalReady),
+      semanticReady: semanticClaimAllowed(true, configure.status),
+    };
   }
 
   post({
@@ -497,7 +684,9 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
 
 async function handleQuery(message: Extract<PageToRuntimeMessage, { type: "query" }>): Promise<void> {
   if (cancelled.has(message.requestId)) return;
-  // Wait for lexical readiness without host-side embedding.
+  const queryStartedAt = Date.now();
+  // Wait for lexical readiness without host-side embedding. Queries do not take
+  // the index lock — readers stay coherent while a leader refreshes.
   const start = Date.now();
   while (!lastStatus?.lexicalReady && Date.now() - start < 15_000) {
     await new Promise((r) => setTimeout(r, 100));
@@ -505,38 +694,92 @@ async function handleQuery(message: Extract<PageToRuntimeMessage, { type: "query
   }
   if (cancelled.has(message.requestId)) return;
 
+  const runQuery = () =>
+    callSearchd({
+      v: SEARCHD_PROTOCOL_VERSION,
+      op: "query",
+      id: nextSearchdId("q"),
+      collectionId: message.collectionId,
+      query: message.query,
+      limit: message.limit,
+    });
+
   // Guest owns query embedding via host embed tool when semantic is ready.
-  const response = await callSearchd({
-    v: SEARCHD_PROTOCOL_VERSION,
-    op: "query",
-    id: nextSearchdId("q"),
-    collectionId: message.collectionId,
-    query: message.query,
-    limit: message.limit,
-  });
+  // When already semanticReady, searchd returns hybrid in one shot (P0) — that is fine.
+  // When not, stage lexical progress first, then re-query once semantic becomes ready.
+  // Trust guest semanticAvailable claim on query responses.
+  const first = await runQuery();
   if (cancelled.has(message.requestId)) return;
-  if (!response.ok) {
+  if (!first.ok) {
+    lastQueryMs = Date.now() - queryStartedAt;
     post({
       protocol: SEARCH_PROTOCOL_VERSION,
       type: "error",
       requestId: message.requestId,
-      code: response.code,
-      message: response.error,
+      code: first.code,
+      message: first.error,
     });
     return;
   }
-  const items = hitsToItems(response.hits ?? [], pageOrigin);
-  if (!response.semanticAvailable && items.length) {
-    post({
-      protocol: SEARCH_PROTOCOL_VERSION,
-      type: "progress",
-      requestId: message.requestId,
-      generation: message.generation,
-      collectionId: message.collectionId,
-      stage: "lexical",
-      items,
-    });
+
+  let items = hitsToItems(first.hits ?? [], pageOrigin);
+  let semanticAvailable = Boolean(first.semanticAvailable);
+
+  if (!semanticAvailable) {
+    // Early lexical paint for the palette (preserve-active-id on later reorder).
+    if (items.length) {
+      post({
+        protocol: SEARCH_PROTOCOL_VERSION,
+        type: "progress",
+        requestId: message.requestId,
+        generation: message.generation,
+        collectionId: message.collectionId,
+        stage: "lexical",
+        items,
+      });
+    }
+
+    // Wait only while index/embed work is still in flight; do not stall when semantic will never ready.
+    const mayBecomeSemantic =
+      indexPromise !== undefined || lastStatus?.phase === "embedding" || lastStatus?.phase === "crawling";
+    if (mayBecomeSemantic && !lastStatus?.semanticReady) {
+      const waitStart = Date.now();
+      const SEMANTIC_WAIT_MS = 12_000;
+      while (!lastStatus?.semanticReady && Date.now() - waitStart < SEMANTIC_WAIT_MS) {
+        if (
+          indexPromise === undefined
+          && lastStatus?.phase !== "embedding"
+          && lastStatus?.phase !== "crawling"
+        ) {
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 150));
+        if (cancelled.has(message.requestId)) return;
+      }
+    }
+
+    if (lastStatus?.semanticReady && !cancelled.has(message.requestId)) {
+      const second = await runQuery();
+      if (cancelled.has(message.requestId)) return;
+      if (second.ok) {
+        items = hitsToItems(second.hits ?? [], pageOrigin);
+        semanticAvailable = Boolean(second.semanticAvailable);
+        if (semanticAvailable && items.length) {
+          post({
+            protocol: SEARCH_PROTOCOL_VERSION,
+            type: "progress",
+            requestId: message.requestId,
+            generation: message.generation,
+            collectionId: message.collectionId,
+            stage: "hybrid",
+            items,
+          });
+        }
+      }
+    }
   }
+
+  lastQueryMs = Date.now() - queryStartedAt;
   post({
     protocol: SEARCH_PROTOCOL_VERSION,
     type: "results",
@@ -544,7 +787,35 @@ async function handleQuery(message: Extract<PageToRuntimeMessage, { type: "query
     generation: message.generation,
     collectionId: message.collectionId,
     items,
-    semanticAvailable: Boolean(response.semanticAvailable),
+    semanticAvailable,
+  });
+}
+
+function handleDiagnostics(message: Extract<PageToRuntimeMessage, { type: "diagnostics" }>): void {
+  const body = buildDiagnostics({
+    bootMs,
+    lastQueryMs,
+    lexicalReady: lastStatus?.lexicalReady,
+    semanticReady: statusProbeOk
+      ? semanticClaimAllowed(statusProbeOk, lastStatus)
+      : Boolean(lastStatus?.semanticReady && lastStatus?.lexicalReady),
+    compatibilityKey,
+    manifest,
+    phase: lastStatus?.phase,
+  });
+  // Optional console surface for support — not a ranking lab UI.
+  console.info("[agentos-search diagnostics]", body);
+  post({
+    protocol: SEARCH_PROTOCOL_VERSION,
+    type: "diagnostics",
+    requestId: message.requestId,
+    bootMs: body.bootMs,
+    lastQueryMs: body.lastQueryMs,
+    lexicalReady: body.lexicalReady,
+    semanticReady: body.semanticReady,
+    compatibilityKeyPrefix: body.compatibilityKeyPrefix,
+    assetBytesTotal: body.assetBytesTotal,
+    phase: body.phase,
   });
 }
 
@@ -616,6 +887,10 @@ self.addEventListener("message", (event: MessageEvent<PageToRuntimeMessage>) => 
           lexicalReady: lastStatus?.lexicalReady,
           semanticReady: lastStatus?.semanticReady,
         });
+      } else if (message.type === "diagnostics") {
+        handleDiagnostics(message);
+      } else if (message.type === "exportSnapshot") {
+        await handleExportSnapshot(message);
       }
     } catch (error) {
       post({

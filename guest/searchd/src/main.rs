@@ -17,17 +17,18 @@ mod jsonx;
 mod fsutil;
 mod svc;
 mod state;
+mod sql_safe;
+mod crawl_policy;
 mod handlers;
 
 use alloc::vec::Vec;
 
 use sysroot as rt;
 
-use alloc_heap::BumpAlloc;
+// Registers #[global_allocator] (talc Wasm-dynamic — not a static BSS slab).
+#[allow(unused_imports)]
+use alloc_heap as _;
 use handlers::serve_loop;
-
-#[global_allocator]
-static ALLOC: BumpAlloc = BumpAlloc;
 
 rt::entry!(main);
 

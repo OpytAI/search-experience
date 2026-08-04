@@ -1,0 +1,20 @@
+--- a/memcontainers/programs/sqlite/glue/BUILD.bazel
++++ b/memcontainers/programs/sqlite/glue/BUILD.bazel
+@@ -39,10 +39,16 @@
+     extra_srcs = [
+         "@sqlite//:sqlite3.h",
+         "sqlite.zig",
+         "vann.zig",
+     ],
+     # -lc reaches the global zig build args (wasi-libc for sqlite3.c's <string.h>/<stdlib.h>/… and the
+     # WASI fd I/O the adapter rewrites). No -lc++ (sqlite is C).
+-    linkopts = ["-lc"],
++    #
++    # Zig/wasi default stack is 16 MiB, which becomes Wasm *initial* linear memory
++    # (stack pointer global = 16MiB, data starts at 16MiB) even though the guest
++    # never needs that stack. Rust guests use 1 MiB. Match them so full MCSN
++    # snapshots are not padded with ~15 MiB of zero stack pages.
++    # Upstream agent-os will take this; product pin patches until that lands.
++    linkopts = ["-lc", "--stack", "1048576"],
+     main = "entry.zig",
+     tags = ["manual"],

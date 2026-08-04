@@ -42,21 +42,33 @@ filegroup(
 # ---------------------------------------------------------------------------
 # AgentOS runtime artifacts (built from git module @agent-os)
 # ---------------------------------------------------------------------------
+# Browser-safe mc-core: AgentOS leaves node: builtins external; rewrite to stubs
+# so integrity-checked blob import works in the runtime worker.
+genrule(
+    name = "mc_core_browser",
+    srcs = [
+        "@agent-os//memcontainers/sdk-js/core:bundle",
+        "//tools:browserify-mc-core.mjs",
+    ],
+    outs = ["runtime/mc-core.mjs"],
+    cmd = "$(location @bun//:bun) $(location //tools:browserify-mc-core.mjs) " +
+          "$(location @agent-os//memcontainers/sdk-js/core:bundle) $@",
+    tools = ["@bun//:bun"],
+)
+
 genrule(
     name = "agentos_runtime_assets",
     srcs = [
         "@agent-os//memcontainers/kernel/rust:kernel",
-        "@agent-os//memcontainers/sdk-js/core:bundle",
+        ":mc_core_browser",
         "@agent-os//memcontainers/lib/catalog-compiler:wasm",
     ],
     outs = [
         "runtime/kernel.wasm",
-        "runtime/mc-core.mjs",
         "runtime/catalog-compiler.wasm",
     ],
     cmd = "mkdir -p $(@D)/runtime && " +
           "cp $(location @agent-os//memcontainers/kernel/rust:kernel) $(@D)/runtime/kernel.wasm && " +
-          "cp $(location @agent-os//memcontainers/sdk-js/core:bundle) $(@D)/runtime/mc-core.mjs && " +
           "cp $(location @agent-os//memcontainers/lib/catalog-compiler:wasm) $(@D)/runtime/catalog-compiler.wasm",
 )
 
@@ -143,7 +155,7 @@ genrule(
         ":runtime/kernel.wasm",
         ":product_image",
         ":runtime/catalog-compiler.wasm",
-        ":runtime/mc-core.mjs",
+        ":mc_core_browser",
         "//index:schema.sql",
         "//guest/searchd:protocol",
         ":model/model.onnx",
@@ -166,7 +178,7 @@ genrule(
           "$(location :runtime/catalog-compiler.wasm) " +
           "$(location //guest/searchd:protocol) " +
           "NONE " +
-          "$(location :runtime/mc-core.mjs) " +
+          "$(location :mc_core_browser) " +
           "--model " +
           "$(location :model/model.onnx) " +
           "$(location :model/tokenizer.json) " +
@@ -191,7 +203,7 @@ pkg_tar(
         ":product_image": "search-atlas.tar",
         ":runtime/kernel.wasm": "kernel.wasm",
         ":runtime/catalog-compiler.wasm": "catalog-compiler.wasm",
-        ":runtime/mc-core.mjs": "mc-core.mjs",
+        ":mc_core_browser": "mc-core.mjs",
         "//guest/searchd:protocol": "searchd/searchd.protocol.json",
         ":model/model.onnx": "model/model.onnx",
         ":model/tokenizer.json": "model/tokenizer.json",

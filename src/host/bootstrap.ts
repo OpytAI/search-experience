@@ -131,7 +131,18 @@ export async function bootstrapSearchExperience(
   element.phase = "booting";
   element.statusMessage = "Starting AgentOS search…";
 
-  return { element, manifest, registration, runtime, client };
+  const experience: SearchExperience = {
+    element,
+    manifest,
+    registration,
+    runtime,
+    client,
+  };
+  // Test / publisher harness handle (not part of the public install contract).
+  (globalThis as typeof globalThis & { __agentosSearch?: SearchExperience }).__agentosSearch =
+    experience;
+
+  return experience;
 }
 
 export { SEARCH_PROTOCOL_VERSION };

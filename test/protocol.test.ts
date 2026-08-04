@@ -15,6 +15,7 @@ import {
   nextSearchdId,
 } from "../src/protocol/searchd.ts";
 import { validateManifest } from "../src/protocol/manifest.ts";
+import { isRuntimeToPageMessage } from "../src/protocol/page-runtime.ts";
 
 assert(SEARCH_PROTOCOL_VERSION === 1, "page protocol version");
 assert(SEARCHD_PROTOCOL_VERSION === 1, "searchd protocol version");
@@ -104,6 +105,23 @@ assert((decodedResume as { config: { resume?: boolean } }).config.resume === tru
 const refreshReq = encodeSearchdRequest({ v: 1, op: "refresh", id: "r1" });
 assert(decodeSearchdRequest(refreshReq).op === "refresh", "refresh op");
 
+// page ↔ runtime diagnostics message shape (protocol v1 extension)
+{
+  const diag = {
+    protocol: SEARCH_PROTOCOL_VERSION,
+    type: "diagnostics" as const,
+    requestId: "d1",
+    bootMs: 10,
+    lastQueryMs: 5,
+    lexicalReady: true,
+    semanticReady: false,
+    compatibilityKeyPrefix: "abcd",
+    assetBytesTotal: 1000,
+  };
+  assert(isRuntimeToPageMessage(diag), "diagnostics is RuntimeToPageMessage");
+  assert(diag.type === "diagnostics", "diagnostics type");
+}
+
 const goodManifest = {
   schema: 1,
   protocol: 1,
@@ -164,5 +182,66 @@ try {
   badImagePath = true;
 }
 assert(badImagePath, "reject relative sqlite indexPath");
+
+// Optional fusion / hostTools / searchd are accepted when shaped correctly and ignored when absent.
+const richManifest = {
+  ...goodManifest,
+  searchd: { protocol: 1 as const, transport: "serviceCall" as const },
+  fusion: { strategy: "rrf" as const, rrfK: 60, perPageLimit: 2 },
+  hostTools: {
+    addresses: [
+      HOST_TOOL_ADDRESSES.fetch,
+      HOST_TOOL_ADDRESSES.extract,
+      HOST_TOOL_ADDRESSES.embedBatch,
+    ],
+  },
+};
+const rich = validateManifest(richManifest);
+assert(rich.fusion?.strategy === "rrf", "fusion strategy");
+assert(rich.fusion?.rrfK === 60, "fusion rrfK");
+assert(rich.fusion?.perPageLimit === 2, "fusion perPageLimit");
+assert(rich.hostTools?.addresses.includes(HOST_TOOL_ADDRESSES.embedBatch), "hostTools addresses");
+assert(rich.searchd?.transport === "serviceCall", "searchd transport");
+
+// Baseline without optional fields still validates (backward compatible).
+assert(validateManifest(goodManifest).version === "0.1.0", "optional fields not required");
+
+let badFusion = false;
+try {
+  validateManifest({ ...goodManifest, fusion: { strategy: "bm25", rrfK: 60, perPageLimit: 2 } });
+} catch {
+  badFusion = true;
+}
+assert(badFusion, "reject non-rrf fusion strategy");
+
+let badFusionK = false;
+try {
+  validateManifest({ ...goodManifest, fusion: { strategy: "rrf", rrfK: 0, perPageLimit: 2 } });
+} catch {
+  badFusionK = true;
+}
+assert(badFusionK, "reject non-positive rrfK");
+
+let badHostTools = false;
+try {
+  validateManifest({
+    ...goodManifest,
+    hostTools: { addresses: [HOST_TOOL_ADDRESSES.fetch] },
+  });
+} catch {
+  badHostTools = true;
+}
+assert(badHostTools, "reject incomplete hostTools.addresses");
+
+let badSearchd = false;
+try {
+  validateManifest({
+    ...goodManifest,
+    searchd: { protocol: 1, transport: "guest-luau" as "serviceCall" },
+  });
+} catch {
+  badSearchd = true;
+}
+assert(badSearchd, "reject non-serviceCall searchd.transport");
 
 console.log("protocol.test.ts: ok");

@@ -123,6 +123,8 @@ export interface SearchdHit {
   lexicalRank?: number;
   semanticRank?: number;
   fusedRank?: number;
+  /** How this hit entered the fused list. */
+  matchMode?: "lexical" | "semantic" | "hybrid";
 }
 
 export interface SearchdStatusBody {

@@ -110,6 +110,13 @@ if (modelPaths.length >= 6) {
   };
 }
 
+// Host tool addresses must match src/protocol/versions.ts HOST_TOOL_ADDRESSES.
+const hostToolAddresses = [
+  "host.org.main.search.fetch",
+  "host.org.main.search.extract",
+  "host.org.main.search.embed.batch",
+];
+
 const manifest = {
   schema: 1,
   protocol: 1,
@@ -124,11 +131,27 @@ const manifest = {
     protocol: 1,
     transport: "serviceCall",
   },
+  // Explicit searchd mirror of service (protocol + serviceCall-only transport).
+  searchd: {
+    protocol: 1,
+    transport: "serviceCall",
+  },
   assets,
   sqlite: {
+    // Product image requires FTS5 (lexical) + VANN (semantic vectors).
     requiredFeatures: ["FTS5", "VANN"],
     indexPath: "/var/searchd/index.db",
   },
+  // Guest RRF defaults (searchd fuse_rrf); fingerprint for coherence checks.
+  fusion: {
+    strategy: "rrf",
+    rrfK: 60,
+    perPageLimit: 2,
+  },
+  hostTools: {
+    addresses: hostToolAddresses,
+  },
+  // Build-time release has no site collections; integrator config / runtime configure supplies them.
   collections: [],
   model,
   snapshot: {

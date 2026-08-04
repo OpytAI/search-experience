@@ -13,6 +13,25 @@ export function recentKey(item: Pick<SearchItem, "collectionId" | "id">): string
   return `${item.collectionId}\u0000${item.id}`;
 }
 
+/**
+ * Preserve keyboard/pointer active selection by stable id (collectionId+id)
+ * when result lists reorder (e.g. lexical → hybrid refinement). Only fall back
+ * to the first enabled item when the previous active id is gone.
+ */
+export function resolveActiveKey(
+  previousKey: string,
+  items: readonly SearchItem[],
+): string {
+  if (previousKey) {
+    const stillActive = items.some(
+      (item) => !item.disabled && recentKey(item) === previousKey,
+    );
+    if (stillActive) return previousKey;
+  }
+  const first = items.find((item) => !item.disabled);
+  return first ? recentKey(first) : "";
+}
+
 export function pruneRecents(entries: readonly RecentEntry[], now = Date.now()): readonly RecentEntry[] {
   const valid = entries.filter((entry) => (
     typeof entry.key === "string" && entry.key.includes("\u0000")

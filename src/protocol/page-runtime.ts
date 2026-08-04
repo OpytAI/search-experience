@@ -42,6 +42,16 @@ export type PageToRuntimeMessage =
       protocol: typeof SEARCH_PROTOCOL_VERSION;
       type: "status";
       requestId: string;
+    }
+  | {
+      protocol: typeof SEARCH_PROTOCOL_VERSION;
+      type: "diagnostics";
+      requestId: string;
+    }
+  | {
+      protocol: typeof SEARCH_PROTOCOL_VERSION;
+      type: "exportSnapshot";
+      requestId: string;
     };
 
 export type RuntimeToPageMessage =
@@ -81,10 +91,34 @@ export type RuntimeToPageMessage =
     }
   | {
       protocol: typeof SEARCH_PROTOCOL_VERSION;
+      type: "diagnostics";
+      requestId: string;
+      /** Cold/warm boot duration to init completion, when measured. */
+      bootMs?: number;
+      /** Last query end-to-end latency in the worker, when measured. */
+      lastQueryMs?: number;
+      lexicalReady: boolean;
+      semanticReady: boolean;
+      /** Non-sensitive prefix of the active compatibility key. */
+      compatibilityKeyPrefix?: string;
+      /** Sum of known asset byte totals from the distribution manifest. */
+      assetBytesTotal?: number;
+      phase?: string;
+    }
+  | {
+      protocol: typeof SEARCH_PROTOCOL_VERSION;
       type: "error";
       requestId?: string;
       code?: string;
       message: string;
+    }
+  | {
+      protocol: typeof SEARCH_PROTOCOL_VERSION;
+      type: "snapshot";
+      requestId: string;
+      /** MCSN bytes as base64 for transfer across the worker boundary. */
+      snapshotBase64: string;
+      meta: import("./snapshot.js").SnapshotCompatibility;
     };
 
 export function isRuntimeToPageMessage(value: unknown): value is RuntimeToPageMessage {

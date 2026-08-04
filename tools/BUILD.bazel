@@ -3,6 +3,10 @@ package(default_visibility = ["//visibility:public"])
 exports_files([
     "bundle.mjs",
     "manifest.mjs",
+    "browser-harness.mjs",
+    "browser-e2e.mjs",
+    "package-prewarm.mjs",
+    "browserify-mc-core.mjs",
 ])
 
 filegroup(
@@ -13,3 +17,7 @@ filegroup(
         allow_empty = True,
     ),
 )
+
+# Browser E2E is a documented acceptance path (not hermetic unit).
+# Run: bun tools/browser-e2e.mjs --release-dir=demo/public/agentos-search
+# Requires unpacked //:release + system Chromium + puppeteer-core.

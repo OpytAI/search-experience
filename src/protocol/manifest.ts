@@ -1,5 +1,10 @@
 import type { BrowserCrawlDefinition } from "./collections.js";
-import { MANIFEST_SCHEMA_VERSION, SEARCH_PROTOCOL_VERSION, SEARCHD_PROTOCOL_VERSION } from "./versions.js";
+import {
+  HOST_TOOL_ADDRESSES,
+  MANIFEST_SCHEMA_VERSION,
+  SEARCH_PROTOCOL_VERSION,
+  SEARCHD_PROTOCOL_VERSION,
+} from "./versions.js";
 
 export interface AssetDescriptor {
   url: string;
@@ -22,6 +27,27 @@ export interface ModelDescriptor {
   assets: Record<string, AssetDescriptor>;
 }
 
+/** Guest fusion fingerprint — must match searchd RRF defaults when present. */
+export interface ManifestFusion {
+  strategy: "rrf";
+  rrfK: number;
+  perPageLimit: number;
+}
+
+/** Host-tool addresses required for searchd effects (fetch / extract / embed). */
+export interface ManifestHostTools {
+  addresses: readonly string[];
+}
+
+/**
+ * Optional mirror of service for deployments that key on "searchd" explicitly.
+ * When present, must agree with `service`.
+ */
+export interface ManifestSearchd {
+  protocol: typeof SEARCHD_PROTOCOL_VERSION;
+  transport: "serviceCall";
+}
+
 export interface SearchExperienceManifest {
   schema: typeof MANIFEST_SCHEMA_VERSION;
   protocol: typeof SEARCH_PROTOCOL_VERSION;
@@ -37,6 +63,8 @@ export interface SearchExperienceManifest {
     /** Production transport is serviceCall only (stamped /svc/searchd). */
     transport: "serviceCall";
   };
+  /** Optional explicit searchd block (same contract as service.protocol/transport). */
+  searchd?: ManifestSearchd;
   assets: {
     main: AssetDescriptor;
     worker: AssetDescriptor;
@@ -57,7 +85,15 @@ export interface SearchExperienceManifest {
     indexPath: string;
   };
   model: ModelDescriptor | null;
+  /**
+   * Site collection descriptors. Build-time release ships `[]`; runtime configure
+   * supplies the integrator crawl definitions.
+   */
   collections: readonly BrowserCrawlDefinition[];
+  /** Optional fusion fingerprint (RRF). Omitted manifests still validate. */
+  fusion?: ManifestFusion;
+  /** Optional host-tool address list. Omitted manifests still validate. */
+  hostTools?: ManifestHostTools;
   snapshot?: {
     format: number;
     compatibilityKey?: string;
@@ -74,6 +110,49 @@ export function isAssetDescriptor(value: unknown): value is AssetDescriptor {
     typeof d.sha256 === "string" &&
     /^[a-f0-9]{64}$/.test(d.sha256)
   );
+}
+
+function validateFusion(value: unknown): asserts value is ManifestFusion {
+  if (!value || typeof value !== "object") throw new Error("search manifest fusion must be an object");
+  const f = value as Partial<ManifestFusion>;
+  if (f.strategy !== "rrf") throw new Error('search manifest fusion.strategy must be "rrf"');
+  if (typeof f.rrfK !== "number" || !Number.isFinite(f.rrfK) || f.rrfK <= 0) {
+    throw new Error("search manifest fusion.rrfK must be a positive number");
+  }
+  if (typeof f.perPageLimit !== "number" || !Number.isInteger(f.perPageLimit) || f.perPageLimit <= 0) {
+    throw new Error("search manifest fusion.perPageLimit must be a positive integer");
+  }
+}
+
+function validateHostTools(value: unknown): asserts value is ManifestHostTools {
+  if (!value || typeof value !== "object") throw new Error("search manifest hostTools must be an object");
+  const h = value as Partial<ManifestHostTools>;
+  if (!Array.isArray(h.addresses) || h.addresses.length === 0) {
+    throw new Error("search manifest hostTools.addresses must be a non-empty string array");
+  }
+  if (!h.addresses.every((a) => typeof a === "string" && a.length > 0)) {
+    throw new Error("search manifest hostTools.addresses must contain only non-empty strings");
+  }
+  const required = Object.values(HOST_TOOL_ADDRESSES);
+  for (const addr of required) {
+    if (!h.addresses.includes(addr)) {
+      throw new Error(`search manifest hostTools.addresses missing required ${addr}`);
+    }
+  }
+}
+
+function validateSearchd(value: unknown, service: SearchExperienceManifest["service"]): asserts value is ManifestSearchd {
+  if (!value || typeof value !== "object") throw new Error("search manifest searchd must be an object");
+  const s = value as Partial<ManifestSearchd>;
+  if (s.protocol !== SEARCHD_PROTOCOL_VERSION) {
+    throw new Error("search manifest searchd.protocol must be 1");
+  }
+  if (s.transport !== "serviceCall") {
+    throw new Error("search manifest searchd.transport must be serviceCall");
+  }
+  if (s.protocol !== service.protocol || s.transport !== service.transport) {
+    throw new Error("search manifest searchd must match service.protocol/transport");
+  }
 }
 
 export function validateManifest(value: unknown): SearchExperienceManifest {
@@ -102,6 +181,10 @@ export function validateManifest(value: unknown): SearchExperienceManifest {
   if (m.service.transport !== "serviceCall") {
     throw new Error("search manifest service.transport must be serviceCall");
   }
+  // Optional richer fields — accept when present, never require.
+  if (m.fusion !== undefined) validateFusion(m.fusion);
+  if (m.hostTools !== undefined) validateHostTools(m.hostTools);
+  if (m.searchd !== undefined) validateSearchd(m.searchd, m.service);
   if (m.model) {
     if (m.model.id !== "mixedbread-ai/mxbai-embed-xsmall-v1") {
       throw new Error("unsupported embedding model id");

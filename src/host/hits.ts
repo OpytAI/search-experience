@@ -28,7 +28,11 @@ export function hitsToItems(
       url: href,
       score: hit.score,
       match: {
-        mode: hit.semanticRank ? "hybrid" : "lexical",
+        mode: hit.matchMode ?? (hit.lexicalRank && hit.semanticRank
+          ? "hybrid"
+          : hit.semanticRank
+            ? "semantic"
+            : "lexical"),
         lexicalRank: hit.lexicalRank,
         semanticRank: hit.semanticRank,
         fusedRank: hit.fusedRank,

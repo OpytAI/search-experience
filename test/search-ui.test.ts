@@ -6,7 +6,13 @@ import { mixedbreadDocumentText, mixedbreadQueryText } from "../src/embedding/te
 import { buildFts5Query } from "../src/oracles/fts.ts";
 import { reciprocalRankFusion } from "../src/oracles/rrf.ts";
 import { parseSearchInput } from "../src/ui/palette/modes.ts";
-import { pruneRecents, recordRecent, deriveLiveRecents } from "../src/ui/palette/recents.ts";
+import {
+  pruneRecents,
+  recordRecent,
+  deriveLiveRecents,
+  recentKey,
+  resolveActiveKey,
+} from "../src/ui/palette/recents.ts";
 import { SearchCollectionRegistry } from "../src/ui/palette/registry.ts";
 import { hitsToItems } from "../src/host/hits.ts";
 import type { SearchCollection, SearchItem } from "../src/ui/palette/types.ts";
@@ -81,5 +87,28 @@ const recents = recordRecent([], item);
 assert(pruneRecents(recents).length === 1, "recents");
 assert(deriveLiveRecents(recents, [item]).length === 1, "live recents");
 assert(deriveLiveRecents(recents, []).length === 0, "stale recents drop");
+
+// Preserve active selection by stable id (collectionId+id) across hybrid reordering.
+const lexical: SearchItem[] = [
+  { id: "a", collectionId: "docs", kind: "page", label: "A" },
+  { id: "b", collectionId: "docs", kind: "page", label: "B" },
+  { id: "c", collectionId: "docs", kind: "page", label: "C" },
+];
+const hybridOrder: SearchItem[] = [
+  { id: "c", collectionId: "docs", kind: "page", label: "C" },
+  { id: "a", collectionId: "docs", kind: "page", label: "A" },
+  { id: "b", collectionId: "docs", kind: "page", label: "B" },
+];
+const activeOnB = recentKey(lexical[1]!);
+assert(resolveActiveKey(activeOnB, hybridOrder) === activeOnB, "active key survives reorder");
+assert(resolveActiveKey("", hybridOrder) === recentKey(hybridOrder[0]!), "empty key → first enabled");
+assert(
+  resolveActiveKey(recentKey({ id: "gone", collectionId: "docs" }), hybridOrder) === recentKey(hybridOrder[0]!),
+  "missing id falls back to first",
+);
+assert(
+  resolveActiveKey(activeOnB, [{ ...lexical[1]!, disabled: true }, hybridOrder[0]!]) === recentKey(hybridOrder[0]!),
+  "disabled previous falls back",
+);
 
 console.log("search-ui.test.ts: ok");

@@ -29,6 +29,10 @@ pub(crate) fn load_state() -> Json {
         ("message".into(), Json::Str("".into())),
         ("collections".into(), Json::Arr(Vec::new())),
         ("queue".into(), Json::Arr(Vec::new())),
+        ("visited".into(), Json::Arr(Vec::new())),
+        ("robots".into(), Json::Obj(Vec::new())),
+        ("sitemapSeeded".into(), Json::Arr(Vec::new())),
+        ("pagesByCollection".into(), Json::Obj(Vec::new())),
     ])
 }
 

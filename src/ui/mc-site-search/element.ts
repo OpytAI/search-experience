@@ -3,7 +3,14 @@ import { property, state } from "lit/decorators.js";
 import { mcSiteSearchStyles } from "./styles.js";
 import { SearchCollectionRegistry } from "../palette/registry.js";
 import { parseSearchInput } from "../palette/modes.js";
-import { deriveLiveRecents, pruneRecents, recordRecent, type RecentEntry } from "../palette/recents.js";
+import {
+  deriveLiveRecents,
+  pruneRecents,
+  recentKey,
+  recordRecent,
+  resolveActiveKey,
+  type RecentEntry,
+} from "../palette/recents.js";
 import type {
   CollectionResultState,
   SearchCollection,
@@ -12,7 +19,8 @@ import type {
 } from "../palette/types.js";
 import { sanitizeNavigationUrl } from "../../security/urls.js";
 
-const optionKey = (item: SearchItem) => `${item.collectionId}\u0000${item.id}`;
+/** Stable option key = collectionId + id (survives hybrid reordering). */
+const optionKey = recentKey;
 const RECENT_STORAGE_KEY = "agentos-search:recents:v1";
 
 function printableIcon(item: SearchItem): string {
@@ -161,6 +169,9 @@ export class McSiteSearch extends LitElement {
       if (!query) return collection.emptyQuery === true;
       return query.length >= (collection.minQueryLength ?? 1);
     });
+    // New query generation: show loading shells but do not thrash activeKey until
+    // the first result/progress publish for this generation (preserve-active-id on
+    // subsequent in-place refinements such as lexical → hybrid).
     this.resultStates = eligible.map((collection) => ({ collection, status: "loading", items: [] }));
     if (eligible.length === 0) {
       this.activeKey = "";
@@ -175,6 +186,7 @@ export class McSiteSearch extends LitElement {
           limit: collection.limit ?? 10,
           publish: (partial) => {
             if (abort.signal.aborted || generation !== this.generation) return;
+            // Progressive channel: lexical-first, then hybrid reorder, etc.
             this.replaceState(collection.id, {
               collection,
               status: "ready",
@@ -201,12 +213,13 @@ export class McSiteSearch extends LitElement {
     }));
   }
 
+  /**
+   * Replace one collection's result state. Always re-resolves activeKey by stable
+   * id so hybrid reordering keeps keyboard focus on the same hit.
+   */
   private replaceState(id: string, state: CollectionResultState): void {
-    this.resultStates = this.resultStates.map((current) => current.collection.id === id ? state : current);
-    const visible = this.visibleItems();
-    if (!visible.some((item) => optionKey(item) === this.activeKey)) {
-      this.activeKey = visible.find((item) => !item.disabled) ? optionKey(visible.find((item) => !item.disabled)!) : "";
-    }
+    this.resultStates = this.resultStates.map((current) => (current.collection.id === id ? state : current));
+    this.activeKey = resolveActiveKey(this.activeKey, this.visibleItems());
   }
 
   private visibleStates(): readonly CollectionResultState[] {

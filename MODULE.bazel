@@ -27,6 +27,9 @@ git_override(
         # Luau glue copts used main-repo-relative -include paths; under @agent-os those
         # resolve as missing headers and surface as zig CacheCheckFailed on every .cpp.
         "//third_party/agent-os:0003-luau-include-external-root.patch",
+        # Zig/wasi default 16MiB stack → Wasm initial memory; match Rust guests (1MiB)
+        # until agent-os upstream ships the same linkopt.
+        "//third_party/agent-os:0004-sqlite-1mib-stack.patch",
     ],
     remote = "https://github.com/NarendraPatwardhan/agent-os.git",
 )

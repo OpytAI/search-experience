@@ -14,6 +14,8 @@ export { parseSearchInput, validateCollectionPrefixes } from "./modes.js";
 export {
   deriveLiveRecents,
   pruneRecents,
+  recentKey,
   recordRecent,
+  resolveActiveKey,
   type RecentEntry,
 } from "./recents.js";

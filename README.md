@@ -103,7 +103,7 @@ tar -xf release.tar -C static
 tar -xf release.tar -C /usr/share/nginx/html
 ```
 
-Serve `.mjs` as JavaScript and `.wasm` as `application/wasm` (most static hosts do this already; nginx may need an explicit `types` map).
+MIME types and Content-Security-Policy matter for this package — see [Content-Security-Policy and static hosting](#content-security-policy-and-static-hosting).
 
 **Next.js (App Router) — load once in the root layout**
 
@@ -365,13 +365,101 @@ Palette UI  ←  ⌘K · results · preview · navigate
 
 | Need | Detail |
 | --- | --- |
-| Browser | Modern engine with **Workers** + **OPFS**; secure context (`https:` or `http://localhost`) |
-| Hosting | Static files with correct MIME for `.mjs` and `.wasm` |
+| Browser | Modern engine with **module scripts**, **module Workers**, **WebAssembly**, and **OPFS**; secure context (`https:` or `http://localhost`) |
+| Hosting | Static files with correct MIME types; CSP must allow modules, workers, Wasm, and same-origin fetches (see below) |
 | Crawl | Same-origin pages the visitor can GET without credentials |
 | Size | Crawl follows same-origin links from seeds until the queue drains; keep seed graphs small on large sites |
 | Not included | Server-side crawler, SEO sitemap generation, off-origin indexing, Luau scripting path |
 
 Private / link-local hosts are blocked unless the page origin itself is allowlisted (normal for local demos).
+
+---
+
+## Content-Security-Policy and static hosting
+
+The copy-and-import package is **same-origin static files only**. There is no CDN, no remote model download, and no Node server at runtime. Your host must serve the unpacked `agentos-search/` tree with correct MIME types, and any site-wide CSP must allow the browser features the entry script actually uses.
+
+### What the browser loads
+
+| Asset class | Examples in the package | How it is used |
+| --- | --- | --- |
+| Page ES module | `agentos-search.mjs` | `<script type="module">` on the page |
+| Module worker | `agentos-search-runtime.mjs` | `new Worker(url, { type: "module" })` — boots the guest, tools, search |
+| Module service worker | `agentos-search-sw.mjs` | Best-effort `navigator.serviceWorker.register(url, { type: "module" })` for **distribution asset cache only** (crawl / ONNX / AgentOS stay in the runtime worker). Registration failure is non-fatal |
+| WebAssembly | `kernel.wasm`, `catalog-compiler.wasm`, ORT `*.wasm` under `model/runtime/` | Fetched as bytes; compiled/instantiated in the runtime worker |
+| Guest image | `search-atlas.tar` | Fetched as bytes; cold-boot / restore input for the guest |
+| ONNX + tokenizer | `model/model.onnx`, `tokenizer.json`, … | Fetched same-origin by the hermetic embedder (no remote Hugging Face / CDN path) |
+| Other JS modules | `mc-core.mjs`, `agentos-search-embed.mjs`, ORT `*.mjs` | Fetched, integrity-checked, then loaded (some via `blob:` URL + dynamic `import()` after verify) |
+| Manifest / schema / JSON | `agentos-search.manifest.json`, `index/schema.sql`, model configs | Same-origin `fetch` |
+
+Network access after load is **same-origin**: package assets under `assetBase`, crawl GETs of visitor-reachable pages on the **page origin**, and Cache Storage for verified distribution files. Embeddings do **not** call out to a model CDN.
+
+### MIME types (static host)
+
+Browsers refuse module scripts and module workers when the response is not a JavaScript MIME type. Serve at least:
+
+| Extension | Required / recommended `Content-Type` | Why |
+| --- | --- | --- |
+| `.mjs` | `text/javascript` or `application/javascript` | Page entry, module worker, module service worker, ORT runtime JS |
+| `.wasm` | `application/wasm` | Kernel, catalog compiler, ONNX Runtime Wasm |
+| `.json` | `application/json` | Manifest, tokenizer/config |
+| `.tar` | `application/x-tar` or `application/octet-stream` | Guest image bytes (`search-atlas.tar`) |
+| `.onnx` | `application/octet-stream` | Embedding model weights |
+| `.sql` | `text/plain` or `application/sql` | Schema text |
+
+Most CDNs and “static site” hosts already map `.mjs` and `.wasm` correctly. **nginx** often needs an explicit map:
+
+```nginx
+types {
+  text/html                             html htm;
+  text/css                              css;
+  text/javascript                       js mjs;
+  application/wasm                      wasm;
+  application/json                      json;
+  application/octet-stream              onnx;
+  application/x-tar                     tar;
+  text/plain                            sql txt;
+  # …keep your other types…
+}
+```
+
+Also ensure reverse proxies do not rewrite or strip these types, and that large binaries (`.tar`, `.onnx`, `.wasm`) are not truncated by body-size limits.
+
+### Content-Security-Policy
+
+If the site sends a CSP, the page that loads `agentos-search.mjs` must allow the following. Adjust host lists if you already pin `'self'` more tightly; the package never requires a third-party script or worker origin.
+
+| Directive | Minimum for this package | Why |
+| --- | --- | --- |
+| `script-src` | `'self' 'wasm-unsafe-eval' blob:` | Page module; **WebAssembly** compile/instantiate under CSP (kernel + ONNX Runtime); integrity-checked modules loaded via **`blob:`** dynamic `import()` (mc-core, embedder) |
+| `worker-src` | `'self' blob:` | **Module worker** (`agentos-search-runtime.mjs`) and **module service worker** (`agentos-search-sw.mjs`); `blob:` if a worker-side dynamic import is governed by this directive in your browser |
+| `connect-src` | `'self'` | Manifest + package asset fetches, same-origin crawl `fetch`, Cache Storage network fallback |
+| `default-src` | Do not set a tight default that overrides the above without re-stating them | Missing `worker-src` falls back to `script-src` / `default-src` in CSP3; a bare `default-src 'none'` without worker/script allowances will block boot |
+
+**Illustrative** policy fragment (merge with the rest of your site’s CSP; do not treat this as a full-site policy):
+
+```http
+Content-Security-Policy:
+  script-src 'self' 'wasm-unsafe-eval' blob:;
+  worker-src 'self' blob:;
+  connect-src 'self';
+```
+
+Notes:
+
+- Prefer **`'wasm-unsafe-eval'`** over **`'unsafe-eval'`**. This product needs Wasm compilation, not general `eval`.
+- **`blob:`** is required because verified package JS is re-imported from blob URLs after SHA-256 checks (avoids a second TOCTOU fetch). Blocking `blob:` in `script-src` typically fails boot with a dynamic-import / CSP console error.
+- Service worker registration uses `{ type: "module" }` and a **scope under the package directory** (the SW script’s folder). A failed registration only disables the distribution cache; search can still run online.
+- **Cross-Origin Isolation** (COOP/COEP) is **not** required for this package: the embedder runs ONNX Runtime with a single thread and does not depend on `SharedArrayBuffer`.
+- Crawl and asset loads use ordinary same-origin HTTP(S) fetches with `credentials: "omit"`. You do not need to open `connect-src` to model or package CDNs.
+
+### Checklist before go-live
+
+1. Open `/agentos-search/agentos-search.manifest.json` → **200**, `Content-Type` includes `json`.
+2. Open `/agentos-search/agentos-search.mjs` → **200**, JavaScript MIME (not `application/octet-stream`).
+3. Open a `.wasm` and `search-atlas.tar` → **200**, full body (not HTML error page).
+4. Console: no CSP violations for `script-src` / `worker-src` / `connect-src`; no “module scripts don’t work with this MIME type”.
+5. Application → Storage: OPFS (or equivalent) writable on a secure context; optional service worker registered under the package path.
 
 ---
 
@@ -381,6 +469,10 @@ Private / link-local hosts are blocked unless the page origin itself is allowlis
 | --- | --- |
 | Manifest HTTP 404 | Is `agentos-search/` under the **published** static root? Open the manifest URL in the browser. |
 | Assets 404 / wrong path | Script `src`, `assetBase`, and unpack location must agree. |
+| `.mjs` fails as module / worker | Response `Content-Type` must be a **JavaScript** MIME (`text/javascript` or `application/javascript`), not `application/octet-stream`. |
+| Wasm / kernel / ORT errors under CSP | Allow **`'wasm-unsafe-eval'`** in `script-src` (prefer that over `'unsafe-eval'`). |
+| Boot fails mentioning `blob:` or dynamic import | Allow **`blob:`** in `script-src` (and `worker-src` if you set it); mc-core and the embedder load via verified blob URLs. |
+| Worker or service worker blocked | `worker-src` (or fallback `script-src`) must include `'self'` for same-origin module workers; SW failure alone is non-fatal. |
 | Stale package | Hard refresh; clear Cache Storage / unregister old service workers. |
 | Empty results | Wait for ready; verify seeds resolve; check Network for crawl GETs. |
 | Unexpected pages indexed | Guest follows same-origin links from seeds; path prefixes are not enforced yet — tighten seeds / site graph. |
@@ -582,6 +674,48 @@ bazel run //demo:dev
 ```
 
 Demo pages (home, `/docs/runtime.html`, `/blog/collections.html`) all load search so **⌘K** works site-wide.
+
+### Browser end-to-end acceptance (required for “product complete”)
+
+Hermetic unit tests are **not** browser E2E. After unpacking a release, run Chromium against the real product package:
+
+```sh
+bazel build //:release
+tar -xf bazel-bin/release.tar -C demo/public
+bun tools/browser-e2e.mjs \
+  --release-dir=demo/public/agentos-search \
+  --export-snapshot \
+  --out=./warm
+```
+
+This boots **kernel + search-atlas** in system Chromium (`/usr/bin/chromium` or `CHROMIUM_PATH`), crawls fixture `/docs` + `/blog`, asserts non-empty query hits, and (with `--export-snapshot`) writes a gzip-encoded full MCSN via `exportSnapshot`.
+
+### Optional warm-snapshot publisher
+
+```sh
+# Plan only (no guest) — orchestration template for CI that lacks Chromium
+bun src/publisher/cli.ts --origin=https://example.com --out=./warm
+
+# Real MCSN capture (same harness as browser-e2e)
+bun src/publisher/cli.ts --capture \
+  --release-dir=demo/public/agentos-search \
+  --out=./warm
+```
+
+Capture writes `search.snapshot` as gzip (`meta.encoding: "gzip"`). `snapshotSha256` is the digest of those gzip bytes.
+
+### Optional prewarmed snapshot in the release package
+
+`//:release` does not embed a site-specific snapshot (configuration is integrator-owned). After capture, inject snapshot assets and rewrite integrity digests:
+
+```sh
+bun tools/package-prewarm.mjs \
+  --release-dir=demo/public/agentos-search \
+  --snapshot=./warm/search.snapshot \
+  --metadata=./warm/search.snapshot.metadata.json
+```
+
+Snapshot bytes must be gzip-encoded MCSN (`meta.encoding: "gzip"`). That sets `manifest.assets.snapshot` + `snapshotMetadata`. On first visit with empty OPFS the worker seeds restore from those assets (`src/host/vm-boot.ts` gunzips before `mc.restore`); strict reattachment still applies.
 
 ---
 

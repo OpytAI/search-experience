@@ -20,6 +20,9 @@ rust_binary(
     deps = [
         "@agent-os//memcontainers/lib/json:lib",
         "@agent-os//memcontainers/sysroot/rust:lib",
+        # Same dynamic allocator as agent-os /svc/tools (not a 32MiB static BSS).
+        # Canonical label for agent-os crate_universe talc (root has no @crates alias).
+        "@@rules_rust++crate+crates//:talc",
     ],
 )
 
@@ -27,7 +30,9 @@ mc_rust_program(
     name = "searchd",
     fuel = 2000000000000,
     lib = ":searchd_bin",
-    mem = 256 * 1024 * 1024,
+    # Ceiling for the service task — not a pre-reserved slab. Keep aligned with
+    # sqlite (64MiB) rather than tools/adapters (256MiB host-call buffers).
+    mem = 64 * 1024 * 1024,
     service = "searchd",
     table = 10000,
     tier = "full",
