@@ -11,6 +11,12 @@
   </p>
 
   <p>
+    Try it live: open
+    <a href="https://search.opyt.cloud">https://search.opyt.cloud</a>
+    and press <kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd>.
+  </p>
+
+  <p>
     <a href="./LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
     <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-informational">
     <img alt="Runtime: Browser" src="https://img.shields.io/badge/runtime-Browser-654ff0">
@@ -25,6 +31,7 @@
     <a href="#for-developers">Developers</a> ·
     <a href="#system-guide">System guide</a>
   </p>
+
 
   <p>
     <img src="./docs/public/hero.png" alt="AgentOS site search palette" width="720">
