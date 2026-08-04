@@ -1,0 +1,32 @@
+load(":defs.bzl", "gh_release")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "publish.mjs",
+    "defs.bzl",
+])
+
+# tools/gh-release — `bazel run` a product GitHub release from the graph (REST API, no `gh` CLI).
+#
+# Primary asset is //:release (release.tar → unpacks to agentos-search/). The tool also generates
+# and uploads SHA256SUMS over the uploaded bytes. Release notes are mandatory.
+#
+#   bazel run //tools/gh-release:publish -- --tag v0.1.0 --notes "..." --dry-run
+#   GITHUB_TOKEN=<token> bazel run //tools/gh-release:publish -- --tag v0.1.0 --notes-file NOTES.md --draft
+gh_release(
+    name = "publish",
+    assets = {
+        "//:release": "release.tar",
+    },
+    repo = "OpytAI/search-experience",
+)
+
+filegroup(
+    name = "sources",
+    srcs = [
+        "BUILD.bazel",
+        "defs.bzl",
+        "publish.mjs",
+    ],
+)

@@ -15,7 +15,10 @@ filegroup(
         ["**"],
         exclude = ["BUILD.bazel"],
         allow_empty = True,
-    ),
+    ) + [
+        "//tools/deps:sources",
+        "//tools/gh-release:sources",
+    ],
 )
 
 # Browser E2E is a documented acceptance path (not hermetic unit).

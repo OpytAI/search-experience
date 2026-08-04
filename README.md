@@ -37,11 +37,19 @@
 
 ### 1. Get `release.tar`
 
-Build from this repo, or take a CI artifact:
+Build from this repo, take a GitHub Release asset, or a CI artifact:
 
 ```sh
+# from source
 bazel build //:release
 # → bazel-bin/release.tar
+
+# from a published release (after a cut)
+# curl -fsSL -o release.tar \
+#   https://github.com/OpytAI/search-experience/releases/download/vX.Y.Z/release.tar
+# curl -fsSL -o SHA256SUMS \
+#   https://github.com/OpytAI/search-experience/releases/download/vX.Y.Z/SHA256SUMS
+# sha256sum -c SHA256SUMS
 ```
 
 ### 2. Unpack into your static root
@@ -291,6 +299,9 @@ bazel run //tools/deps:update_lock   # after package.json changes
 bazel test //:check                  # typecheck + unit smoke
 bazel run //docs:dev                 # builds //:release, stages docs/public/agentos-search, serves http://127.0.0.1:5191
 bazel build //:release               # bazel-bin/release.tar (CI / integrators)
+# cut a GitHub release from the graph (notes required; --dry-run validates without network):
+# bazel run //tools/gh-release:publish -- --tag v0.1.0 --notes "…" --dry-run
+# GITHUB_TOKEN=… bazel run //tools/gh-release:publish -- --tag v0.1.0 --notes-file NOTES.md [--draft]
 ```
 
 Long-form documentation (Diátaxis tutorials, how-tos, reference, explanation, plus blog) lives under **`docs/`**. `bazel run //docs:dev` depends on `//:release` and stages `docs/public/agentos-search/` automatically (gitignored). Root README stays install-first; the site is the pedagogical surface.
@@ -315,7 +326,7 @@ search-experience/
 ├── index/schema.sql
 ├── docs/                     # Vite docs site
 ├── test/
-├── tools/                    # browser e2e, prewarm, packaging helpers
+├── tools/                    # browser e2e, prewarm, packaging, gh-release
 └── third_party/agent-os/     # patches applied to the pin
 ```
 
