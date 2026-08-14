@@ -53,7 +53,3 @@ export function isSameOrigin(candidate: string, pageOrigin: string): boolean {
   }
 }
 
-/** @deprecated Prefer isSameOrigin for crawl policy. */
-export function isSameSiteOrigin(candidate: string, pageOrigin: string): boolean {
-  return isSameOrigin(candidate, pageOrigin);
-}

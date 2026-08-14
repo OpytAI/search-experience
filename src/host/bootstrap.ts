@@ -2,6 +2,7 @@ import type { McSiteSearch } from "../ui/mc-site-search/element.js";
 import type { BrowserCrawlDefinition } from "../protocol/collections.js";
 import { validateManifest, type SearchExperienceManifest } from "../protocol/manifest.js";
 import { SEARCH_PROTOCOL_VERSION } from "../protocol/versions.js";
+import { verifiedBytes } from "../worker/assets.js";
 import { SearchWorkerClient } from "./worker-client.js";
 
 export interface SearchExperienceOptions {
@@ -11,14 +12,23 @@ export interface SearchExperienceOptions {
   collections?: readonly BrowserCrawlDefinition[];
   refreshAfterMs?: number;
   showLauncher?: boolean;
+  /**
+   * When true, expose `globalThis.__agentosSearch` for browser harness / publisher
+   * tooling. Off by default — not part of the public install contract.
+   */
+  exposeHarness?: boolean;
 }
 
 export interface SearchExperience {
   element: McSiteSearch;
   manifest: SearchExperienceManifest;
-  registration: ServiceWorkerRegistration | null;
   runtime: Worker;
   client: SearchWorkerClient;
+  /**
+   * Hard-stop lifecycle: reject pending client promises, remove listeners,
+   * terminate the runtime worker, clear harness handle. Not reversible.
+   */
+  dispose(): void;
 }
 
 function crawlDefinitions(options: SearchExperienceOptions): BrowserCrawlDefinition[] {
@@ -68,35 +78,33 @@ export async function bootstrapSearchExperience(
   const element = mountElement(options.autoMount !== false, options.showLauncher);
   const assetBase = new URL(options.assetBase ?? "./", import.meta.url);
   const manifestUrl = new URL(options.manifestUrl ?? "agentos-search.manifest.json", assetBase);
+  const packageBase = new URL("./", manifestUrl);
   const manifestResponse = await fetch(manifestUrl, { cache: "no-cache" });
   if (!manifestResponse.ok) {
     throw new Error(`search manifest returned HTTP ${manifestResponse.status}`);
   }
   const manifest = validateManifest(await manifestResponse.json());
 
-  let registration: ServiceWorkerRegistration | null = null;
-  if ("serviceWorker" in navigator) {
-    const workerUrl = new URL(manifest.assets.worker.url, manifestUrl);
-    workerUrl.searchParams.set("sha256", manifest.assets.worker.sha256);
-    const workerScope = new URL("./", workerUrl);
-    try {
-      registration = await navigator.serviceWorker.register(workerUrl, {
-        type: "module",
-        scope: workerScope.href,
-        updateViaCache: "none",
-      });
-    } catch {
-      element.statusMessage = "Service worker registration failed; online search still works.";
-    }
+  // Integrity-checked runtime: fetch + sha256 before Worker construction (same
+  // pattern as mc-core/embedder). Blob URL avoids a second unverified network load.
+  const runtimeBytes = await verifiedBytes(packageBase.href, manifest.assets.runtime, "runtime");
+  const runtimeCopy = new Uint8Array(runtimeBytes.byteLength);
+  runtimeCopy.set(runtimeBytes);
+  const runtimeBlobUrl = URL.createObjectURL(
+    new Blob([runtimeCopy], { type: "text/javascript" }),
+  );
+  let runtime: Worker;
+  try {
+    runtime = new Worker(runtimeBlobUrl, { type: "module", name: "agentos-site-search" });
+  } finally {
+    // Worker has its own copy of the module graph once constructed.
+    URL.revokeObjectURL(runtimeBlobUrl);
   }
 
-  const runtimeUrl = new URL(manifest.assets.runtime.url, manifestUrl);
-  runtimeUrl.searchParams.set("sha256", manifest.assets.runtime.sha256);
-  const runtime = new Worker(runtimeUrl, { type: "module", name: "agentos-site-search" });
   const client = new SearchWorkerClient(runtime);
   const collections = crawlDefinitions(options);
 
-  client.onMessage((message) => {
+  const unsubscribe = client.onMessage((message) => {
     if (message.type === "status") {
       element.phase = message.phase;
       // Progress must not blank the results palette after collections are live.
@@ -131,16 +139,34 @@ export async function bootstrapSearchExperience(
   element.phase = "booting";
   element.statusMessage = "Starting AgentOS search…";
 
+  let disposed = false;
   const experience: SearchExperience = {
     element,
     manifest,
-    registration,
     runtime,
     client,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      unsubscribe();
+      client.dispose("SearchExperience disposed");
+      runtime.terminate();
+      element.statusMessage = "";
+      const g = globalThis as typeof globalThis & { __agentosSearch?: SearchExperience };
+      if (g.__agentosSearch === experience) {
+        delete g.__agentosSearch;
+      }
+    },
   };
-  // Test / publisher harness handle (not part of the public install contract).
-  (globalThis as typeof globalThis & { __agentosSearch?: SearchExperience }).__agentosSearch =
-    experience;
+
+  const exposeHarness =
+    options.exposeHarness === true ||
+    (typeof location !== "undefined" &&
+      new URLSearchParams(location.search).get("agentosHarness") === "1");
+  if (exposeHarness) {
+    (globalThis as typeof globalThis & { __agentosSearch?: SearchExperience }).__agentosSearch =
+      experience;
+  }
 
   return experience;
 }

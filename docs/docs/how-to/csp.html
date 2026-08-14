@@ -45,9 +45,9 @@
 
         <h2>Why each token</h2>
         <ul>
-          <li><code>'self'</code> — page module, worker scripts, package assets, crawl GETs on the page origin.</li>
+          <li><code>'self'</code> — page module, package assets, crawl GETs on the page origin.</li>
           <li><code>'wasm-unsafe-eval'</code> — kernel and ONNX Runtime compile under CSP (prefer over broad <code>'unsafe-eval'</code>).</li>
-          <li><code>blob:</code> — verified package JS re-imported from blob URLs after SHA-256 checks (mc-core, embedder).</li>
+          <li><code>blob:</code> — SHA-256-checked package JS loaded from blob URLs: the runtime module worker, mc-core, the embedder, and ORT.</li>
         </ul>
 
         <h2>What you do not need</h2>

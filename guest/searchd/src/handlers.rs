@@ -1,4 +1,4 @@
-//! searchd op handlers (configure/crawl/query/refresh/promote/…).
+//! searchd op handlers (configure/crawl/query/refresh/checkpoint/…).
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -22,16 +22,42 @@ fn handle_configure(req: &Json) -> Json {
     let can_resume = resume && same && crate::jsonx::j_get_bool(&state, "lexicalReady");
 
     if can_resume {
-        crate::state::set_field(&mut state, "message", Json::Str("Resumed from warm snapshot".into()));
-        crate::state::set_field(&mut state, "writeCandidate", Json::Bool(false));
-        if let Some(mf) = crate::jsonx::j_get_str(&config, "modelFingerprint") {
-            crate::state::set_field(&mut state, "modelFingerprint", Json::Str(mf.into()));
+        // Warm resume only if the active DB has FTS/VANN/triggers. On failure fall
+        // through to cold configure (do not leave lexicalReady=true + error phase —
+        // that loops forever on the next boot).
+        let resume_ok = if crate::svc::sqlite_open(crate::paths::INDEX_PATH) {
+            let ok = crate::svc::schema_postconditions_ok().is_ok();
+            crate::svc::sqlite_close();
+            ok
+        } else {
+            false
+        };
+        if resume_ok {
+            crate::state::set_field(&mut state, "message", Json::Str("Resumed from warm snapshot".into()));
+            crate::state::set_field(&mut state, "writeCandidate", Json::Bool(false));
+            if let Some(mf) = crate::jsonx::j_get_str(&config, "modelFingerprint") {
+                crate::state::set_field(&mut state, "modelFingerprint", Json::Str(mf.into()));
+            }
+            if let Some(sql) = crate::jsonx::j_get_str(&config, "schemaSql") {
+                crate::state::set_field(&mut state, "schemaSql", Json::Str(sql.into()));
+            }
+            crate::state::save_state(&state);
+            return crate::jsonx::ok_resp(
+                id,
+                "configure",
+                alloc::vec![("status".into(), crate::state::status_body(&state))],
+            );
         }
-        if let Some(sql) = crate::jsonx::j_get_str(&config, "schemaSql") {
-            crate::state::set_field(&mut state, "schemaSql", Json::Str(sql.into()));
-        }
-        crate::state::save_state(&state);
-        return crate::jsonx::ok_resp(id, "configure", alloc::vec![("status".into(), crate::state::status_body(&state))]);
+        // Clear readiness so cold path is authoritative and can_resume cannot re-fire
+        // with a broken index until rebuild succeeds.
+        crate::state::set_field(&mut state, "lexicalReady", Json::Bool(false));
+        crate::state::set_field(&mut state, "semanticReady", Json::Bool(false));
+        crate::state::set_field(
+            &mut state,
+            "message",
+            Json::Str("Warm resume schema check failed; rebuilding".into()),
+        );
+        // fall through to cold configure
     }
 
     // Cold configure
@@ -97,25 +123,33 @@ fn handle_configure(req: &Json) -> Json {
     crate::state::set_field(&mut state, "queue", Json::Arr(queue));
 
     let _ = crate::fsutil::write_file(crate::paths::CANDIDATE_PATH, b"");
-    if crate::svc::sqlite_open(crate::paths::INDEX_PATH) {
-        if !schema.is_empty() {
-            crate::svc::apply_schema(&schema);
-        }
-        let _ = crate::svc::sqlite_exec("PRAGMA foreign_keys = ON");
-        if let Json::Arr(cols) = &collections {
-            for c in cols {
-                let cid = crate::jsonx::j_get_str(c, "id").unwrap_or("site");
-                let label = crate::jsonx::j_get_str(c, "label").unwrap_or(cid);
-                let sql = format!(
-                    "INSERT INTO collections(id, label, source_json, page_count, chunk_count, built_at) VALUES ({}, {}, '{{}}', 0, 0, datetime('now')) ON CONFLICT(id) DO UPDATE SET label=excluded.label",
-                    sql_safe::sql_quote_string(cid),
-                    sql_safe::sql_quote_string(label),
-                );
-                let _ = crate::svc::sqlite_exec(&sql);
+    if let Err(e) = crate::svc::ensure_schema(crate::paths::INDEX_PATH, &schema) {
+        crate::state::set_field(&mut state, "phase", Json::Str("error".into()));
+        crate::state::set_field(&mut state, "message", Json::Str(e.clone().into()));
+        crate::state::save_state(&state);
+        return crate::jsonx::err_resp(id, "schema_error", &e);
+    }
+    let _ = crate::svc::sqlite_exec("PRAGMA foreign_keys = ON");
+    if let Json::Arr(cols) = &collections {
+        for c in cols {
+            let cid = crate::jsonx::j_get_str(c, "id").unwrap_or("site");
+            let label = crate::jsonx::j_get_str(c, "label").unwrap_or(cid);
+            let sql = format!(
+                "INSERT INTO collections(id, label, source_json, page_count, chunk_count, built_at) VALUES ({}, {}, '{{}}', 0, 0, datetime('now')) ON CONFLICT(id) DO UPDATE SET label=excluded.label",
+                sql_safe::sql_quote_string(cid),
+                sql_safe::sql_quote_string(label),
+            );
+            if !crate::svc::sqlite_exec(&sql) {
+                crate::svc::sqlite_close();
+                let msg = format!("failed to seed collection {}", cid);
+                crate::state::set_field(&mut state, "phase", Json::Str("error".into()));
+                crate::state::set_field(&mut state, "message", Json::Str(msg.clone().into()));
+                crate::state::save_state(&state);
+                return crate::jsonx::err_resp(id, "schema_error", &msg);
             }
         }
-        crate::svc::sqlite_close();
     }
+    crate::svc::sqlite_close();
 
     crate::state::set_field(&mut state, "phase", Json::Str("crawling".into()));
     crate::state::set_field(&mut state, "message", Json::Str("Crawl queued".into()));
@@ -1479,7 +1513,34 @@ fn handle_refresh(req: &Json) -> Json {
     if crate::jsonx::j_get_bool(&state, "writeCandidate") {
         return crate::jsonx::err_resp(id, "busy", "candidate refresh already in progress");
     }
+
+    // Prepare candidate schema first — only arm writeCandidate after postconditions pass,
+    // so a DDL failure cannot leave the guest permanently "busy".
     let _ = crate::fsutil::write_file(crate::paths::CANDIDATE_PATH, b"");
+    let schema = crate::jsonx::j_get_str(&state, "schemaSql")
+        .unwrap_or("")
+        .to_string();
+    if let Err(e) = crate::svc::ensure_schema(crate::paths::CANDIDATE_PATH, &schema) {
+        crate::svc::sqlite_close();
+        // Active index still serves; keep lexical/semantic readiness.
+        let phase = if crate::jsonx::j_get_bool(&state, "semanticReady") {
+            "semantic_ready"
+        } else {
+            "lexical_ready"
+        };
+        crate::state::set_field(&mut state, "writeCandidate", Json::Bool(false));
+        crate::state::set_field(&mut state, "candidateGeneration", Json::Null);
+        crate::state::set_field(&mut state, "phase", Json::Str(phase.into()));
+        crate::state::set_field(
+            &mut state,
+            "message",
+            Json::Str(format!("Refresh aborted: {}", e)),
+        );
+        crate::state::save_state(&state);
+        return crate::jsonx::err_resp(id, "schema_error", &e);
+    }
+    crate::svc::sqlite_close();
+
     let cand_id = format!("cand-{}", crate::jsonx::j_get_u64(&state, "pages", 0) + 1);
     crate::state::set_field(&mut state, "writeCandidate", Json::Bool(true));
     crate::state::set_field(&mut state, "candidateGeneration", Json::Str(cand_id));
@@ -1526,16 +1587,6 @@ fn handle_refresh(req: &Json) -> Json {
         }
     }
     crate::state::set_field(&mut state, "queue", Json::Arr(queue));
-
-    let schema = crate::jsonx::j_get_str(&state, "schemaSql")
-        .unwrap_or("")
-        .to_string();
-    if crate::svc::sqlite_open(crate::paths::CANDIDATE_PATH) {
-        if !schema.is_empty() {
-            crate::svc::apply_schema(&schema);
-        }
-        crate::svc::sqlite_close();
-    }
     crate::state::save_state(&state);
     crate::jsonx::ok_resp(
         id,
@@ -1544,6 +1595,7 @@ fn handle_refresh(req: &Json) -> Json {
     )
 }
 
+/// Status snapshot for integrators — does **not** run SQLite WAL checkpoint/flush.
 fn handle_checkpoint(req: &Json) -> Json {
     let id = crate::jsonx::j_get_str(req, "id").unwrap_or("checkpoint");
     let state = crate::state::load_state();
@@ -1569,25 +1621,6 @@ fn handle_checkpoint(req: &Json) -> Json {
     )
 }
 
-fn handle_promote(req: &Json) -> Json {
-    let id = crate::jsonx::j_get_str(req, "id").unwrap_or("promote");
-    let mut state = crate::state::load_state();
-    if let Some(g) = crate::jsonx::j_get_str(req, "generationId") {
-        crate::state::set_field(&mut state, "generation", Json::Str(g.into()));
-    }
-    crate::state::save_state(&state);
-    crate::jsonx::ok_resp(
-        id,
-        "promote",
-        alloc::vec![("status".into(), crate::state::status_body(&state))],
-    )
-}
-
-fn handle_cancel(req: &Json) -> Json {
-    let id = crate::jsonx::j_get_str(req, "id").unwrap_or("cancel");
-    crate::jsonx::ok_resp(id, "cancel", Vec::new())
-}
-
 pub(crate) fn dispatch(req: &Json) -> Json {
     let id = crate::jsonx::j_get_str(req, "id").unwrap_or("unknown");
     let v = req.get("v").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32;
@@ -1601,10 +1634,9 @@ pub(crate) fn dispatch(req: &Json) -> Json {
         "crawl_step" => handle_crawl_step(req),
         "embed_step" => handle_embed_step(req),
         "query" => handle_query(req),
+        // Honest status snapshot only — not a SQLite WAL checkpoint.
         "checkpoint" => handle_checkpoint(req),
-        "promote" => handle_promote(req),
         "refresh" => handle_refresh(req),
-        "cancel" => handle_cancel(req),
         _ => crate::jsonx::err_resp(id, "unknown_op", &format!("unknown op {}", op)),
     }
 }

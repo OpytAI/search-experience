@@ -20,6 +20,13 @@ Stock `atlas` = `loom` (posix + **Luau**) + sqlite. Production path is
 sqlite and host tools via services; it does not shell out to `ls`/`awk`/….
 So the honest substrate is **`base` + sqlite + searchd**.
 
+## Upstream dependency (thinner image)
+
+AgentOS `base` still includes Git and adapters this product does not use. A smaller
+public **service substrate** image would shrink artifacts and the build graph.
+That boundary must land **upstream** in AgentOS; do not invent a fragile
+downstream fork of base.
+
 ## Build
 
 ```bash

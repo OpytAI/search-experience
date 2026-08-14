@@ -19,7 +19,13 @@ declare module "@huggingface/transformers" {
   export function pipeline(
     task: string,
     model: string,
-    options?: Record<string, unknown>,
+    options?: {
+      dtype?: string;
+      device?: string;
+      subfolder?: string;
+      model_file_name?: string;
+      [key: string]: unknown;
+    },
   ): Promise<{
     (inputs: string[], options?: Record<string, unknown>): Promise<{ tolist: () => unknown }>;
     dispose?: () => Promise<void>;

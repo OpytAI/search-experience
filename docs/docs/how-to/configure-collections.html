@@ -53,8 +53,8 @@
           <li><code>refreshAfterMs</code> — background rebuild cadence (clamped 60s … 7d when set).</li>
         </ul>
 
-        <h2>Fields carried but not fully guest-enforced yet</h2>
-        <p><code>includePathPrefixes</code>, <code>excludePathPrefixes</code>, <code>maxPages</code>, sitemaps may be present in <code>BrowserCrawlDefinition</code>. Host path helpers and guest policy are evolving—treat seeds as the hard boundary until your version documents enforcement as complete.</p>
+        <h2>Guest-enforced crawl policy</h2>
+        <p><code>includePathPrefixes</code>, <code>excludePathPrefixes</code>, and <code>maxPages</code> (plus queue/sitemap budgets) are enforced by guest <code>searchd</code> on seeds and discovered same-origin links. Keep seeds accurate; path policy still matters for link expansion.</p>
 
         <h2>Same-origin rule</h2>
         <p>Fetch allowlist is the page origin. Extra <code>origins</code> entries only stick if they match that origin. Off-origin indexing is out of scope for the visitor product.</p>

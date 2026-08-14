@@ -69,6 +69,8 @@ export function productFixtureHtml(options = {}) {
     manifestUrl: "/agentos-search/agentos-search.manifest.json",
     collections,
     showLauncher: true,
+    // Opt-in harness handle for wait/query/export (not the public install contract).
+    exposeHarness: true,
   };
   return `<!doctype html>
 <html lang="en">

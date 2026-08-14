@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>What the service worker is for</title>
-    <meta name="description" content="Distribution caching only—not crawl, not ONNX, not AgentOS compute." />
+    <title>Why there is no distribution service worker</title>
+    <meta name="description" content="Package caching is left to HTTP/CDN; the module worker is the only compute surface." />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -34,14 +34,14 @@
           <p class="eyebrow">Explanation</p>
           <span class="page-path">/docs/explanation/service-worker.html</span>
         </div>
-        <h1>What the service worker is for</h1>
-        <p class="lead">Distribution caching only—not crawl, not ONNX, not AgentOS compute.</p>
+        <h1>Why there is no distribution service worker</h1>
+        <p class="lead">A worker scoped under the package directory would not control the host page, so it would not cache what matters and could interfere with other caches on the origin.</p>
 
-        <h2>Scope</h2>
-        <p>The worker script registers under the package directory with <code>type: "module"</code>. It caches verified package assets by digest so repeat visits do not re-download multi‑megabyte Wasm and models unnecessarily.</p>
+        <h2>Current design</h2>
+        <p>The product ships only a <strong>module worker</strong> for AgentOS, crawl coordination, and embeddings. Static package files rely on ordinary HTTP caching and CDN headers. There is no Cache Storage lifecycle.</p>
 
-        <h2>Non-goals</h2>
-        <p>It must not become a second indexer, a background crawl daemon with different policy, or a place to hide ranking. Registration failure is non-fatal so strict browsers or user settings cannot brick search.</p>
+        <h2>If you add caching later</h2>
+        <p>Use an owned cache-name prefix, a scope that actually controls clients you care about, and never delete unrelated caches on the origin. Until a measured need exists, omit the worker.</p>
 
 
       </article>

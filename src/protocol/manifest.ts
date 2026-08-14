@@ -27,7 +27,7 @@ export interface ModelDescriptor {
   assets: Record<string, AssetDescriptor>;
 }
 
-/** Guest fusion fingerprint — must match searchd RRF defaults when present. */
+/** Guest RRF defaults documented for integrators (guest hardcodes unless query overrides). */
 export interface ManifestFusion {
   strategy: "rrf";
   rrfK: number;
@@ -37,15 +37,6 @@ export interface ManifestFusion {
 /** Host-tool addresses required for searchd effects (fetch / extract / embed). */
 export interface ManifestHostTools {
   addresses: readonly string[];
-}
-
-/**
- * Optional mirror of service for deployments that key on "searchd" explicitly.
- * When present, must agree with `service`.
- */
-export interface ManifestSearchd {
-  protocol: typeof SEARCHD_PROTOCOL_VERSION;
-  transport: "serviceCall";
 }
 
 export interface SearchExperienceManifest {
@@ -63,11 +54,8 @@ export interface SearchExperienceManifest {
     /** Production transport is serviceCall only (stamped /svc/searchd). */
     transport: "serviceCall";
   };
-  /** Optional explicit searchd block (same contract as service.protocol/transport). */
-  searchd?: ManifestSearchd;
   assets: {
     main: AssetDescriptor;
-    worker: AssetDescriptor;
     runtime: AssetDescriptor;
     embedder: AssetDescriptor;
     kernel: AssetDescriptor;
@@ -76,12 +64,12 @@ export interface SearchExperienceManifest {
     catalogCompiler?: AssetDescriptor;
     /** Required — runtime loads mc-core from this integrity-checked descriptor. */
     mcCore: AssetDescriptor;
-    searchdProtocol?: AssetDescriptor;
     snapshot?: AssetDescriptor;
     snapshotMetadata?: AssetDescriptor;
   };
   sqlite: {
     requiredFeatures: readonly ("FTS5" | "VANN")[];
+    /** Fixed guest path (informational; guest always uses /var/searchd/index.db). */
     indexPath: string;
   };
   model: ModelDescriptor | null;
@@ -90,7 +78,7 @@ export interface SearchExperienceManifest {
    * supplies the integrator crawl definitions.
    */
   collections: readonly BrowserCrawlDefinition[];
-  /** Optional fusion fingerprint (RRF). Omitted manifests still validate. */
+  /** Optional fusion defaults documentation (RRF). */
   fusion?: ManifestFusion;
   /** Optional host-tool address list. Omitted manifests still validate. */
   hostTools?: ManifestHostTools;
@@ -141,20 +129,6 @@ function validateHostTools(value: unknown): asserts value is ManifestHostTools {
   }
 }
 
-function validateSearchd(value: unknown, service: SearchExperienceManifest["service"]): asserts value is ManifestSearchd {
-  if (!value || typeof value !== "object") throw new Error("search manifest searchd must be an object");
-  const s = value as Partial<ManifestSearchd>;
-  if (s.protocol !== SEARCHD_PROTOCOL_VERSION) {
-    throw new Error("search manifest searchd.protocol must be 1");
-  }
-  if (s.transport !== "serviceCall") {
-    throw new Error("search manifest searchd.transport must be serviceCall");
-  }
-  if (s.protocol !== service.protocol || s.transport !== service.transport) {
-    throw new Error("search manifest searchd must match service.protocol/transport");
-  }
-}
-
 export function validateManifest(value: unknown): SearchExperienceManifest {
   if (!value || typeof value !== "object") throw new Error("search manifest must be an object");
   const m = value as Partial<SearchExperienceManifest>;
@@ -162,7 +136,7 @@ export function validateManifest(value: unknown): SearchExperienceManifest {
   if (m.protocol !== SEARCH_PROTOCOL_VERSION) throw new Error(`unsupported search protocol ${String(m.protocol)}`);
   if (!m.version || typeof m.version !== "string") throw new Error("search manifest missing version");
   if (!m.assets) throw new Error("search manifest missing assets");
-  for (const key of ["main", "worker", "runtime", "embedder", "kernel", "image", "schema", "mcCore"] as const) {
+  for (const key of ["main", "runtime", "embedder", "kernel", "image", "schema", "mcCore"] as const) {
     if (!isAssetDescriptor(m.assets[key])) throw new Error(`search manifest has invalid assets.${key}`);
   }
   if (m.assets.catalogCompiler && !isAssetDescriptor(m.assets.catalogCompiler)) {
@@ -171,8 +145,9 @@ export function validateManifest(value: unknown): SearchExperienceManifest {
   if (!m.sqlite?.requiredFeatures?.includes("FTS5") || !m.sqlite.requiredFeatures.includes("VANN")) {
     throw new Error("search image must declare FTS5 and VANN");
   }
-  if (typeof m.sqlite.indexPath !== "string" || !m.sqlite.indexPath.startsWith("/")) {
-    throw new Error("search manifest sqlite.indexPath must be an absolute guest path");
+  // Fixed product path — accept only the canonical guest path.
+  if (m.sqlite.indexPath !== "/var/searchd/index.db") {
+    throw new Error('search manifest sqlite.indexPath must be "/var/searchd/index.db"');
   }
   if (!Array.isArray(m.collections)) throw new Error("search manifest collections must be an array");
   if (m.service?.name !== "searchd" || m.service.protocol !== SEARCHD_PROTOCOL_VERSION) {
@@ -181,10 +156,8 @@ export function validateManifest(value: unknown): SearchExperienceManifest {
   if (m.service.transport !== "serviceCall") {
     throw new Error("search manifest service.transport must be serviceCall");
   }
-  // Optional richer fields — accept when present, never require.
   if (m.fusion !== undefined) validateFusion(m.fusion);
   if (m.hostTools !== undefined) validateHostTools(m.hostTools);
-  if (m.searchd !== undefined) validateSearchd(m.searchd, m.service);
   if (m.model) {
     if (m.model.id !== "mixedbread-ai/mxbai-embed-xsmall-v1") {
       throw new Error("unsupported embedding model id");

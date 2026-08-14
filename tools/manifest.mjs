@@ -1,12 +1,11 @@
 /**
  * Build agentos-search.manifest.json with integrity digests for every shipped asset.
  *
- * usage: manifest.mjs <output> <main> <worker> <runtime> <embedder> <kernel> <image> <schema>
- *        [catalog] [searchd-protocol] [unused-guest-slot] [mc-core]
+ * usage: manifest.mjs <output> <main> <runtime> <embedder> <kernel> <image> <schema>
+ *        [catalog] [mc-core]
  *        [--model model.onnx tokenizer.json tokenizer_config.json config.json ort.mjs ort.wasm]
  *
  * Production transport is serviceCall only (stamped /svc/searchd in search-atlas).
- * The unused-guest-slot positional is accepted as "NONE" for BUILD compatibility.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -33,21 +32,18 @@ const positional = modelFlag >= 0 ? argv.slice(0, modelFlag) : argv;
 const [
   output,
   mainPath,
-  workerPath,
   runtimePath,
   embedderPath,
   kernelPath,
   imagePath,
   schemaPath,
   catalogPath,
-  searchdProtocolPath,
-  _searchdGuestPath,
   mcCorePath,
 ] = positional;
 
 if (!schemaPath) {
   throw new Error(
-    "usage: manifest.mjs <output> <main> <worker> <runtime> <embedder> <kernel> <image> <schema> [catalog] [searchd-protocol] [NONE] [mc-core] [--model ...]",
+    "usage: manifest.mjs <output> <main> <runtime> <embedder> <kernel> <image> <schema> [catalog] [mc-core] [--model ...]",
   );
 }
 
@@ -56,7 +52,6 @@ const imageUrl = "search-atlas.tar";
 
 const assets = {
   main: await asset("agentos-search.mjs", mainPath),
-  worker: await asset("agentos-search-sw.mjs", workerPath),
   runtime: await asset("agentos-search-runtime.mjs", runtimePath),
   embedder: await asset("agentos-search-embed.mjs", embedderPath),
   kernel: await asset("kernel.wasm", kernelPath),
@@ -67,10 +62,6 @@ const assets = {
 if (catalogPath && catalogPath !== "NONE") {
   assets.catalogCompiler = await asset("catalog-compiler.wasm", catalogPath);
 }
-if (searchdProtocolPath && searchdProtocolPath !== "NONE") {
-  assets.searchdProtocol = await asset("searchd/searchd.protocol.json", searchdProtocolPath);
-}
-// Guest authority is stamped /svc/searchd (serviceCall); no alternate guest source asset.
 if (mcCorePath && mcCorePath !== "NONE") {
   assets.mcCore = await asset("mc-core.mjs", mcCorePath);
 }
@@ -131,18 +122,14 @@ const manifest = {
     protocol: 1,
     transport: "serviceCall",
   },
-  // Explicit searchd mirror of service (protocol + serviceCall-only transport).
-  searchd: {
-    protocol: 1,
-    transport: "serviceCall",
-  },
   assets,
   sqlite: {
     // Product image requires FTS5 (lexical) + VANN (semantic vectors).
     requiredFeatures: ["FTS5", "VANN"],
+    // Fixed guest path (paths.rs); not a configure-time override.
     indexPath: "/var/searchd/index.db",
   },
-  // Guest RRF defaults (searchd fuse_rrf); fingerprint for coherence checks.
+  // Guest RRF defaults (searchd fuse_rrf); documentation only unless query overrides.
   fusion: {
     strategy: "rrf",
     rrfK: 60,

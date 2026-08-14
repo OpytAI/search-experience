@@ -4,8 +4,12 @@
 #   docker compose -f deploy/docker-compose.yml build
 #   docker compose -f deploy/docker-compose.yml up
 #
-# Product package under /agentos-search/ is fetched from GitHub Releases
-# (latest by default) — no Bazel on the host.
+# Product package under /agentos-search/ is fetched from a pinned GitHub Release
+# tag (not latest) — no Bazel on the host.
+#
+# Cut the release first (release.tar + SHA256SUMS for RELEASE_TAG). Missing tags
+# fail the Docker build intentionally. For production deploys set
+# RELEASE_TAR_SHA256 and REQUIRE_RELEASE_TAR_SHA256=1.
 #
 # Do not publish host :80 here. Dokploy’s reverse proxy already owns 80/443 and
 # routes to this service on the compose network. Binding 0.0.0.0:80 fails with
@@ -18,7 +22,10 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile
       args:
-        RELEASE_BASE: https://github.com/OpytAI/search-experience/releases/latest/download
+        RELEASE_TAG: v0.1.0
+        # Optional independent pin of release.tar (recommended for prod):
+        # RELEASE_TAR_SHA256: <sha256 of release.tar>
+        # REQUIRE_RELEASE_TAR_SHA256: "1"
     expose:
       - "80"
     restart: unless-stopped

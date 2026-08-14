@@ -69,7 +69,3 @@ export function rankCollectionStatesForQuery(
   });
 }
 
-/** @deprecated use bestCollectionAffinity — kept name for tests that only pass scores */
-export function bestCollectionScore(state: CollectionResultState): number {
-  return bestCollectionAffinity(state, "");
-}

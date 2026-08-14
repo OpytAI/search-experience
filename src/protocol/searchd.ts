@@ -13,9 +13,7 @@ export type SearchdOp =
   | "embed_step"
   | "query"
   | "checkpoint"
-  | "promote"
-  | "refresh"
-  | "cancel";
+  | "refresh";
 
 export interface SearchdConfigureRequest {
   v: typeof SEARCHD_PROTOCOL_VERSION;
@@ -27,8 +25,6 @@ export interface SearchdConfigureRequest {
     modelFingerprint: string;
     compatibilityKey: string;
     pageOrigin: string;
-    refreshAfterMs?: number;
-    indexPath?: string;
     /**
      * When true, if guest state already matches compatibilityKey and is
      * lexical-ready, do not wipe index/queues — warm resume after snapshot restore.
@@ -78,25 +74,12 @@ export interface SearchdQueryRequest {
   rrfK?: number;
 }
 
+/** Status snapshot only — does not run SQLite WAL checkpoint/flush. */
 export interface SearchdCheckpointRequest {
   v: typeof SEARCHD_PROTOCOL_VERSION;
   op: "checkpoint";
   id: string;
   kind?: "lexical" | "semantic" | "idle";
-}
-
-export interface SearchdPromoteRequest {
-  v: typeof SEARCHD_PROTOCOL_VERSION;
-  op: "promote";
-  id: string;
-  generationId: string;
-}
-
-export interface SearchdCancelRequest {
-  v: typeof SEARCHD_PROTOCOL_VERSION;
-  op: "cancel";
-  id: string;
-  targetId?: string;
 }
 
 export type SearchdRequest =
@@ -106,9 +89,7 @@ export type SearchdRequest =
   | SearchdEmbedStepRequest
   | SearchdQueryRequest
   | SearchdCheckpointRequest
-  | SearchdPromoteRequest
-  | SearchdRefreshRequest
-  | SearchdCancelRequest;
+  | SearchdRefreshRequest;
 
 export interface SearchdHit {
   id: string;
@@ -169,8 +150,8 @@ export interface SearchdOkResponse {
   };
   hits?: readonly SearchdHit[];
   semanticAvailable?: boolean;
-  checkpoint?: { kind: string; at: string };
-  promoted?: { generationId: string };
+  /** Readiness kind snapshot only (not a SQLite WAL checkpoint). */
+  checkpoint?: { kind: string; at?: string };
 }
 
 export interface SearchdErrResponse {
@@ -221,9 +202,8 @@ export function decodeSearchdRequest(bytes: Uint8Array): SearchdRequest {
   if (!parsed || typeof parsed !== "object") throw new Error("searchd request must be an object");
   const r = parsed as Partial<SearchdRequest>;
   if (r.v !== SEARCHD_PROTOCOL_VERSION) throw new Error(`unsupported searchd protocol ${String(r.v)}`);
-  if (typeof r.op !== "string" || typeof r.id !== "string") {
-    throw new Error("searchd request missing op/id");
-  }
+  if (typeof r.id !== "string") throw new Error("searchd request missing id");
+  if (typeof r.op !== "string") throw new Error("searchd request missing op");
   return r as SearchdRequest;
 }
 

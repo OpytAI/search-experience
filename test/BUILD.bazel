@@ -50,9 +50,21 @@ search_command_test(
 )
 
 search_command_test(
-    name = "e2e_smoke_test",
+    name = "pipeline_unit_test",
     chdir = ".",
-    fixed_args = ["test/e2e-smoke.test.ts"],
+    fixed_args = ["test/pipeline-unit.test.ts"],
+)
+
+search_command_test(
+    name = "schema_contract_test",
+    chdir = ".",
+    fixed_args = ["test/schema-contract.test.ts"],
+)
+
+search_command_test(
+    name = "model_integrity_test",
+    chdir = ".",
+    fixed_args = ["test/model-integrity.test.ts"],
 )
 
 test_suite(
@@ -65,6 +77,8 @@ test_suite(
         ":contracts_test",
         ":guest_policy_test",
         ":reattach_test",
-        ":e2e_smoke_test",
+        ":pipeline_unit_test",
+        ":schema_contract_test",
+        ":model_integrity_test",
     ],
 )

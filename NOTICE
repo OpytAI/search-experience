@@ -1,0 +1,13 @@
+search-experience
+Copyright 2026 opyt.cloud
+
+This product includes third-party material:
+
+Mixedbread mxbai-embed-xsmall-v1 (ONNX weights and tokenizer)
+Copyright Mixedbread. Licensed under the Apache License, Version 2.0.
+https://huggingface.co/mixedbread-ai/mxbai-embed-xsmall-v1
+
+ONNX Runtime WebAssembly (ort-wasm-simd-threaded.jsep)
+Copyright (c) Microsoft Corporation. Licensed under the MIT License.
+Shipped as the Wasm inference backend only — not the full transformers.js package.
+https://onnxruntime.ai/

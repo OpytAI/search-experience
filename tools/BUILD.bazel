@@ -7,7 +7,16 @@ exports_files([
     "browser-e2e.mjs",
     "package-prewarm.mjs",
     "browserify-mc-core.mjs",
+    "build-bundles.mjs",
 ])
+
+filegroup(
+    name = "bundle_tool_sources",
+    srcs = [
+        "bundle.mjs",
+        "build-bundles.mjs",
+    ],
+)
 
 filegroup(
     name = "sources",

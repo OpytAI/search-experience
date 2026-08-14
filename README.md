@@ -107,17 +107,18 @@ Any `globalThis.AgentOSSearch` setup must run **before** that module (for exampl
 
 ```text
 agentos-search/
+├── LICENSE
+├── NOTICE
+├── README.md
 ├── agentos-search.mjs              # page entry
 ├── agentos-search.manifest.json    # digests + layout
 ├── agentos-search-runtime.mjs      # module worker
-├── agentos-search-sw.mjs           # distribution asset cache only
 ├── agentos-search-embed.mjs
 ├── kernel.wasm
 ├── search-atlas.tar
 ├── mc-core.mjs
 ├── catalog-compiler.wasm
 ├── index/schema.sql
-├── searchd/searchd.protocol.json
 └── model/                          # ONNX weights, tokenizer, ORT runtime
 ```
 
@@ -157,7 +158,7 @@ If you omit `collections`, the product uses a single collection: `id: "site"`, s
 
 Palette fields that work today: `id`, `label`, `order`, `prefix`, `placeholder`, `minQueryLength`, and `limit`. Crawl starts from each collection’s **`seeds`** and follows same-origin links from there. Fetch is limited to the **page origin**; extra `origins` are only accepted when they match that origin.
 
-Path prefixes, `maxPages`, and sitemaps may appear in config, but guest `searchd` does **not** enforce them yet. Until it does, keep seeds explicit and the public site graph tight. Prefixes such as `docs:` and `blog:` still scope **queries** in the palette even when path isolation is incomplete.
+Guest `searchd` enforces same-origin crawl, `includePathPrefixes` / `excludePathPrefixes` on seeds and discovered links, and per-collection `maxPages` (and related queue/sitemap budgets). Palette prefixes such as `docs:` and `blog:` still scope **queries** independently of crawl policy.
 
 ### Placement and asset location
 
@@ -227,7 +228,6 @@ Your page
   ▼
 Entry (main thread)
   │  registers <mc-site-search>
-  │  optional service worker (package asset cache)
   │  starts the module worker
   ▼
 Runtime worker
@@ -241,7 +241,7 @@ Guest /svc/searchd   ◄── serviceCall only (not a public HTTP API)
 Index under /var/searchd/  →  palette UI (⌘K)
 ```
 
-Crawl is same-origin. Ranking and crawl policy live only in guest `searchd` — TypeScript never ranks production results. The durable index sits in OPFS; the service worker, when allowed, only caches distribution files. Upgrading means replacing the whole `agentos-search/` tree; visitors may cold-boot if digests change.
+Crawl is same-origin. Ranking and crawl policy live only in guest `searchd` — TypeScript never ranks production results. The durable index sits in OPFS. Upgrading means replacing the whole `agentos-search/` tree; visitors may cold-boot if digests change.
 
 **Requirements.** A modern browser with module scripts, module workers, WebAssembly, and OPFS, on a secure context (`https:` or `http://localhost`). Host static files with correct MIME types and a CSP that allows modules, workers, Wasm, and same-origin fetches.
 
@@ -281,9 +281,9 @@ Content-Security-Policy:
   connect-src 'self';
 ```
 
-Prefer `'wasm-unsafe-eval'` over `'unsafe-eval'` — this product needs Wasm compilation, not general `eval`. The `blob:` source is required because verified package JS is re-imported from blob URLs after SHA-256 checks; blocking it usually surfaces as a dynamic-import or CSP console error. The package never needs a third-party script or worker origin. Cross-origin isolation (COOP/COEP) is **not** required.
+Prefer `'wasm-unsafe-eval'` over `'unsafe-eval'` — this product needs Wasm compilation, not general `eval`. The `blob:` source is required because the runtime module worker, mc-core, the embedder, and ORT are loaded from SHA-256-checked blob URLs; blocking it usually surfaces as a worker-construction or dynamic-import error. The package never needs a third-party script or worker origin. Cross-origin isolation (COOP/COEP) is **not** required.
 
-Service worker registration is best-effort and scoped under the package directory. A failed registration only disables the distribution cache; search can still run online.
+Caching is left to the host CDN/browser. The runtime module worker is compute, not a Cache Storage controller.
 
 ### If something fails
 
@@ -291,7 +291,7 @@ Service worker registration is best-effort and scoped under the package director
 - `.mjs` fails as a module → response is not a JavaScript MIME type (often `application/octet-stream`).
 - Wasm or dynamic-import errors under CSP → allow `'wasm-unsafe-eval'` and `blob:` as above.
 - Empty results → wait for ready; confirm seeds resolve and Network shows crawl GETs.
-- Unexpected pages indexed → guest follows same-origin links from seeds; path prefixes are not enforced yet.
+- Unexpected pages indexed → guest follows same-origin links from seeds subject to include/exclude path policy and `maxPages`.
 
 ---
 
@@ -357,7 +357,6 @@ Authority is split cleanly:
 - **Host tools** own same-origin fetch, HTML extract, and embedding batches (`host.org.main.search.*`). They do not rank.
 - **Runtime worker** owns boot/restore, tool wiring, the serviceCall queue, and OPFS snapshots.
 - **`<mc-site-search>`** owns the palette UI only.
-- **Service worker** owns distribution asset cache only — not crawl, ONNX, or AgentOS.
 
 Queries always read `/var/searchd/index.db`. A cold first index writes `index.db` directly. A refresh rebuilds `/var/searchd/candidate.db`, then promote copies a non-empty candidate (pages **and** chunks ≥ 1) over the active index and clears the candidate. Incomplete candidates are discarded.
 
@@ -420,7 +419,7 @@ Fetch is http(s) only, with `credentials: "omit"`, a fixed product User-Agent, b
 
 ### Product boundaries
 
-Do not reintroduce a Luau production transport, prebuilt AgentOS asset pins as the default build path, or a second host-side ranking authority. TypeScript FTS/RRF helpers in this tree are **test oracles**, not production rankers. The service worker stays a distribution cache, not a compute surface.
+Do not reintroduce a Luau production transport, prebuilt AgentOS asset pins as the default build path, or a second host-side ranking authority. TypeScript FTS/RRF helpers under `test/support/` are **test oracles**, not production rankers. Do not ship a distribution service worker until a measured cache need and owned cache-prefix contract exist.
 
 ### Contributing
 

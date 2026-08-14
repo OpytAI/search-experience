@@ -74,7 +74,7 @@ pub(crate) fn path_starts_with(path: &str, prefix: &str) -> bool {
 
 /// Whether a URL path is allowed for a collection's include/exclude prefixes.
 ///
-/// Rules (mirrors TS `src/security/paths.ts` and publisher `collectionAcceptsUrl`):
+/// Rules (mirrors TS `test/support/paths.ts` and publisher `collectionAcceptsUrl`):
 /// 1. Any matching exclude prefix → reject
 /// 2. If include list is empty → accept
 /// 3. Else accept only if some include prefix matches

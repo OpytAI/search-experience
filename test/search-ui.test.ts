@@ -3,8 +3,8 @@
  */
 import { assert } from "./assert.ts";
 import { mixedbreadDocumentText, mixedbreadQueryText } from "../src/embedding/text.ts";
-import { buildFts5Query } from "../src/oracles/fts.ts";
-import { reciprocalRankFusion } from "../src/oracles/rrf.ts";
+import { buildFts5Query } from "./support/fts.ts";
+import { reciprocalRankFusion } from "./support/rrf.ts";
 import { parseSearchInput } from "../src/ui/palette/modes.ts";
 import {
   pruneRecents,

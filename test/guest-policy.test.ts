@@ -9,9 +9,9 @@ import {
   urlAllowedForCollection,
   urlPathname,
   DEFAULT_MAX_PAGES,
-} from "../src/security/paths.ts";
-import { reciprocalRankFusion } from "../src/oracles/rrf.ts";
-import { buildFts5Query } from "../src/oracles/fts.ts";
+} from "./support/paths.ts";
+import { reciprocalRankFusion } from "./support/rrf.ts";
+import { buildFts5Query } from "./support/fts.ts";
 
 // ── path prefix rules (mirror crawl_policy.rs) ───────────────────────────────
 

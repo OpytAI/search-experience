@@ -24,16 +24,15 @@
           "modelFingerprint": "string",
           "compatibilityKey": "string",
           "pageOrigin": "string",
-          "refreshAfterMs": "number?",
-          "indexPath": "string?",
           "resume": "boolean? — when true and compatibilityKey matches a lexical-ready guest, keep index/queues (warm restore)"
         }
-      }
+      },
+      "notes": "Applies schemaSql as a multi-statement SQLite script and fails closed unless chunks_fts, chunk_vec, and the three FTS triggers exist. Index paths are fixed (see paths); refreshAfterMs is host-only."
     },
     "status": { "request": { "v": 1, "op": "status", "id": "string" } },
     "crawl_step": {
       "request": { "v": 1, "op": "crawl_step", "id": "string", "maxFetches": "number?" },
-      "notes": "Guest owns queue/robots/fingerprints; calls host.org.main.search.fetch and .extract. Writes active or candidate DB based on writeCandidate."
+      "notes": "Guest owns queue/robots/fingerprints; calls host.org.main.search.fetch and .extract. Writes active or candidate DB based on writeCandidate. Auto-promotes a validated candidate (pages≥1, chunks≥1, not truncated)."
     },
     "embed_step": {
       "request": { "v": 1, "op": "embed_step", "id": "string", "maxChunks": "number?" },
@@ -52,18 +51,16 @@
         "perPageLimit": "number?",
         "rrfK": "number?"
       },
-      "notes": "Always reads /var/searchd/index.db (active generation)"
+      "notes": "Always reads /var/searchd/index.db (active generation). RRF defaults are guest-hardcoded (k=60) unless overridden per request."
     },
     "refresh": {
       "request": { "v": 1, "op": "refresh", "id": "string" },
-      "notes": "Start candidate generation: wipe and rebuild /var/searchd/candidate.db; active index keeps serving queries"
+      "notes": "Start candidate generation: wipe and rebuild /var/searchd/candidate.db with full schema postconditions; active index keeps serving queries"
     },
-    "checkpoint": { "request": { "v": 1, "op": "checkpoint", "id": "string", "kind": "lexical|semantic|idle?" } },
-    "promote": {
-      "request": { "v": 1, "op": "promote", "id": "string", "generationId": "string" },
-      "notes": "Optional explicit promote; crawl_step also auto-promotes a validated candidate (pages≥1, chunks≥1, not truncated)"
-    },
-    "cancel": { "request": { "v": 1, "op": "cancel", "id": "string", "targetId": "string?" } }
+    "checkpoint": {
+      "request": { "v": 1, "op": "checkpoint", "id": "string", "kind": "lexical|semantic|idle?" },
+      "notes": "Returns readiness status only — does not run SQLite WAL checkpoint/flush"
+    }
   },
   "hostTools": {
     "host.org.main.search.fetch": { "input": { "url": "string", "maxBytes": "number?", "timeoutMs": "number?", "userAgent": "string? — ignored by visitor host; fixed AgentOSSearch/1.0" } },

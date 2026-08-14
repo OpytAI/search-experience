@@ -93,7 +93,6 @@ assert(defaultTimeoutFor({ v: 1, op: "status", id: "s" }) === 60_000, "default s
   const res = await client.call({ v: 1, op: "status", id: "svc-1" }, 5_000);
   assert(res.ok === true, "serviceCall ok");
   assert(serviceCalls === 1, "serviceCall used");
-  assert(client.transport === "serviceCall", "transport is serviceCall");
 }
 
 {

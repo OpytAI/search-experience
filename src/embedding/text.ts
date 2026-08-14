@@ -11,10 +11,17 @@ export interface EmbedderAsset {
 }
 
 export interface MixedbreadEmbedderOptions {
+  /**
+   * Package root (or …/model/ parent). Production passes the release package base
+   * so model id `"model"` resolves to `model/*` and asset descriptors verify there.
+   */
   assetBase: string | URL;
+  /** When set, every digest is verified and Transformers is bound to those bytes. */
   assets?: Readonly<Record<string, EmbedderAsset>>;
+  /** Dev-only absolute ORT URLs when `assets` is omitted. */
   runtimeModule?: string | URL;
   runtimeWasm?: string | URL;
+  /** Dev-only cache; production uses an internal verified-byte cache from `assets`. */
   cache?: Pick<Cache, "match" | "put">;
 }
 

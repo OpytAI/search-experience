@@ -54,10 +54,10 @@
         </ul>
 
         <h2>Wrong pages indexed</h2>
-        <p>Guest follows same-origin links from seeds. Tighten seeds and internal links; do not rely on include prefixes alone yet.</p>
+        <p>Guest follows same-origin links from seeds subject to <code>includePathPrefixes</code>, <code>excludePathPrefixes</code>, and <code>maxPages</code>. Tighten seeds, link graph, and path policy together.</p>
 
         <h2>Stale package after deploy</h2>
-        <p>Hard refresh; clear Cache Storage; unregister old service workers under the package scope. Replace the entire <code>agentos-search/</code> tree on upgrade.</p>
+        <p>Hard refresh and replace the entire <code>agentos-search/</code> tree on upgrade.</p>
 
         <h2>Private host errors</h2>
         <p>Fetch blocks private/link-local hosts unless that origin is the page origin allowlist entry (local demos). Production should use public hostnames.</p>

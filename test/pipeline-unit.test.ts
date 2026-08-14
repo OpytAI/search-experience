@@ -1,12 +1,12 @@
 /**
- * Hermetic pipeline smoke — not a full Chromium browser E2E.
+ * Hermetic pipeline unit test — not a full Chromium browser E2E.
  * Chains pure + client pieces that a cold boot would exercise before the guest VM.
  * Full browser E2E (kernel + search-atlas + OPFS) remains a follow-up with Playwright.
  */
 import { assert } from "./assert.ts";
-import { pathAllowed } from "../src/security/paths.ts";
-import { buildFts5Query } from "../src/oracles/fts.ts";
-import { reciprocalRankFusion } from "../src/oracles/rrf.ts";
+import { pathAllowed } from "./support/paths.ts";
+import { buildFts5Query } from "./support/fts.ts";
+import { reciprocalRankFusion } from "./support/rrf.ts";
 import { hitsToItems } from "../src/host/hits.ts";
 import { resolveActiveKey } from "../src/ui/palette/recents.ts";
 import {
@@ -100,7 +100,6 @@ const manifest = {
   version: "0.1.0",
   agentos: { tag: "source", image: "search-atlas" },
   service: { name: "searchd" as const, protocol: 1 as const, transport: "serviceCall" as const },
-  searchd: { protocol: 1, transport: "serviceCall" as const },
   fusion: { strategy: "rrf" as const, rrfK: 60, perPageLimit: 2 },
   hostTools: {
     addresses: [
@@ -111,7 +110,6 @@ const manifest = {
   },
   assets: {
     main: { url: "a.mjs", bytes: 1, sha256: "a".repeat(64) },
-    worker: { url: "b.mjs", bytes: 1, sha256: "b".repeat(64) },
     runtime: { url: "c.mjs", bytes: 1, sha256: "c".repeat(64) },
     embedder: { url: "d.mjs", bytes: 1, sha256: "d".repeat(64) },
     kernel: { url: "k.wasm", bytes: 1, sha256: "e".repeat(64) },
@@ -126,7 +124,7 @@ const manifest = {
 assert(validateManifest(manifest).fusion?.strategy === "rrf", "rich manifest ok");
 
 // Publisher plan_only smoke (real MCSN capture is tools/browser-e2e.mjs + --capture)
-const dir = await mkdtemp(join(tmpdir(), "search-e2e-"));
+const dir = await mkdtemp(join(tmpdir(), "search-pipeline-"));
 try {
   const pub = await publishWarmSnapshot({
     origin: "https://example.com",
@@ -142,5 +140,5 @@ try {
 }
 
 console.log(
-  "e2e-smoke.test.ts: ok (hermetic pipeline). Full browser acceptance: bun tools/browser-e2e.mjs --release-dir=docs/public/agentos-search",
+  "pipeline-unit.test.ts: ok (hermetic pipeline). Full browser acceptance: bun tools/browser-e2e.mjs --release-dir=docs/public/agentos-search",
 );

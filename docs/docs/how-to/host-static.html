@@ -55,8 +55,8 @@
         <h2>Body size limits</h2>
         <p><code>search-atlas.tar</code>, <code>model.onnx</code>, and Wasm files are multi-megabyte. Ensure proxies do not 413 or truncate. Guest cold boot reads the image as bytes.</p>
 
-        <h2>Service worker</h2>
-        <p>Registration is best-effort under the package path for distribution caching only. Failure is non-fatal; search still runs online.</p>
+        <h2>Caching</h2>
+        <p>The package does not register a distribution service worker. Rely on normal HTTP caching / CDN headers for static assets. The runtime module worker is unrelated to Cache Storage.</p>
 
         <p>CSP details: <a href="/docs/how-to/csp.html">CSP how-to</a>. Package inventory: <a href="/docs/reference/package-layout.html">layout reference</a>.</p>
 

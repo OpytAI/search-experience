@@ -130,7 +130,6 @@ const goodManifest = {
   service: { name: "searchd" as const, protocol: 1 as const, transport: "serviceCall" as const },
   assets: {
     main: { url: "a.mjs", bytes: 1, sha256: "a".repeat(64) },
-    worker: { url: "b.mjs", bytes: 1, sha256: "b".repeat(64) },
     runtime: { url: "c.mjs", bytes: 1, sha256: "c".repeat(64) },
     embedder: { url: "d.mjs", bytes: 1, sha256: "d".repeat(64) },
     kernel: { url: "k.wasm", bytes: 1, sha256: "e".repeat(64) },
@@ -181,12 +180,11 @@ try {
 } catch {
   badImagePath = true;
 }
-assert(badImagePath, "reject relative sqlite indexPath");
+assert(badImagePath, "reject non-canonical sqlite indexPath");
 
-// Optional fusion / hostTools / searchd are accepted when shaped correctly and ignored when absent.
+// Optional fusion / hostTools are accepted when shaped correctly.
 const richManifest = {
   ...goodManifest,
-  searchd: { protocol: 1 as const, transport: "serviceCall" as const },
   fusion: { strategy: "rrf" as const, rrfK: 60, perPageLimit: 2 },
   hostTools: {
     addresses: [
@@ -201,7 +199,6 @@ assert(rich.fusion?.strategy === "rrf", "fusion strategy");
 assert(rich.fusion?.rrfK === 60, "fusion rrfK");
 assert(rich.fusion?.perPageLimit === 2, "fusion perPageLimit");
 assert(rich.hostTools?.addresses.includes(HOST_TOOL_ADDRESSES.embedBatch), "hostTools addresses");
-assert(rich.searchd?.transport === "serviceCall", "searchd transport");
 
 // Baseline without optional fields still validates (backward compatible).
 assert(validateManifest(goodManifest).version === "0.1.0", "optional fields not required");
@@ -233,15 +230,10 @@ try {
 }
 assert(badHostTools, "reject incomplete hostTools.addresses");
 
-let badSearchd = false;
-try {
-  validateManifest({
-    ...goodManifest,
-    searchd: { protocol: 1, transport: "guest-luau" as "serviceCall" },
-  });
-} catch {
-  badSearchd = true;
-}
-assert(badSearchd, "reject non-serviceCall searchd.transport");
+// Extra unknown top-level keys must not break validation.
+assert(
+  validateManifest({ ...goodManifest, unusedExtra: true }).version === "0.1.0",
+  "ignore unknown top-level key",
+);
 
 console.log("protocol.test.ts: ok");

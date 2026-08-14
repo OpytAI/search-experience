@@ -1,9 +1,12 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("//bazel:search.bzl", "search_build_binary", "search_typecheck")
 
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
+    "LICENSE",
+    "NOTICE",
     "package.json",
     "bunfig.toml",
     "bun.lock",
@@ -39,6 +42,19 @@ filegroup(
     ],
 )
 
+# Inputs for browser bundles only (avoid invalidating on docs/guest/test edits).
+filegroup(
+    name = "bundle_sources",
+    srcs = [
+        "package.json",
+        "bunfig.toml",
+        "bun.lock",
+        "tsconfig.json",
+        "//src:sources",
+        "//tools:bundle_tool_sources",
+    ],
+)
+
 # ---------------------------------------------------------------------------
 # AgentOS runtime artifacts (built from git module @agent-os)
 # ---------------------------------------------------------------------------
@@ -60,7 +76,6 @@ genrule(
     name = "agentos_runtime_assets",
     srcs = [
         "@agent-os//memcontainers/kernel/rust:kernel",
-        ":mc_core_browser",
         "@agent-os//memcontainers/lib/catalog-compiler:wasm",
     ],
     outs = [
@@ -86,7 +101,7 @@ search_build_binary(
     ],
     out_dir = "dist-bundles",
     srcs = [
-        "//:all_sources",
+        "//:bundle_sources",
     ],
 )
 
@@ -102,13 +117,6 @@ genrule(
     srcs = [":bundles"],
     outs = ["agentos-search-runtime.mjs"],
     cmd = "cp $(location :bundles)/agentos-search-runtime.mjs $@",
-)
-
-genrule(
-    name = "pick_worker_bundle",
-    srcs = [":bundles"],
-    outs = ["agentos-search-sw.mjs"],
-    cmd = "cp $(location :bundles)/agentos-search-sw.mjs $@",
 )
 
 genrule(
@@ -149,7 +157,6 @@ genrule(
     name = "manifest",
     srcs = [
         ":pick_main_bundle",
-        ":pick_worker_bundle",
         ":pick_runtime_bundle",
         ":pick_embed_bundle",
         ":runtime/kernel.wasm",
@@ -157,7 +164,6 @@ genrule(
         ":runtime/catalog-compiler.wasm",
         ":mc_core_browser",
         "//index:schema.sql",
-        "//guest/searchd:protocol",
         ":model/model.onnx",
         ":model/tokenizer.json",
         ":model/tokenizer_config.json",
@@ -169,15 +175,12 @@ genrule(
     outs = ["agentos-search.manifest.json"],
     cmd = "$(location @bun//:bun) $(location //tools:manifest.mjs) $@ " +
           "$(location :pick_main_bundle) " +
-          "$(location :pick_worker_bundle) " +
           "$(location :pick_runtime_bundle) " +
           "$(location :pick_embed_bundle) " +
           "$(location :runtime/kernel.wasm) " +
           "$(location :product_image) " +
           "$(location //index:schema.sql) " +
           "$(location :runtime/catalog-compiler.wasm) " +
-          "$(location //guest/searchd:protocol) " +
-          "NONE " +
           "$(location :mc_core_browser) " +
           "--model " +
           "$(location :model/model.onnx) " +
@@ -193,18 +196,18 @@ genrule(
 pkg_tar(
     name = "release",
     files = {
+        "LICENSE": "LICENSE",
+        "NOTICE": "NOTICE",
         "README.md": "README.md",
         ":pick_main_bundle": "agentos-search.mjs",
         ":pick_embed_bundle": "agentos-search-embed.mjs",
         ":manifest": "agentos-search.manifest.json",
         ":pick_runtime_bundle": "agentos-search-runtime.mjs",
-        ":pick_worker_bundle": "agentos-search-sw.mjs",
         "//index:schema.sql": "index/schema.sql",
         ":product_image": "search-atlas.tar",
         ":runtime/kernel.wasm": "kernel.wasm",
         ":runtime/catalog-compiler.wasm": "catalog-compiler.wasm",
         ":mc_core_browser": "mc-core.mjs",
-        "//guest/searchd:protocol": "searchd/searchd.protocol.json",
         ":model/model.onnx": "model/model.onnx",
         ":model/tokenizer.json": "model/tokenizer.json",
         ":model/tokenizer_config.json": "model/tokenizer_config.json",
@@ -222,11 +225,25 @@ search_typecheck(
     tsconfig = "tsconfig.json",
 )
 
+# Guest compile must succeed for the product to ship.
+build_test(
+    name = "guest_searchd_build",
+    targets = ["//guest/searchd:searchd"],
+)
+
+# Full release package (bundles + image + manifest).
+build_test(
+    name = "release_build",
+    targets = ["//:release"],
+)
+
 test_suite(
     name = "check",
     tests = [
         ":typecheck",
         "//test:unit",
         "//docs:typecheck",
+        ":guest_searchd_build",
+        ":release_build",
     ],
 )

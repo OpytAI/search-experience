@@ -1,7 +1,8 @@
 /**
  * Docs site host — real documentation + live product demo.
- * Boots the runtime worker against unpacked agentos-search/ when present;
- * otherwise fixture collections keep ⌘K usable for UI work.
+ * Boots the runtime worker against unpacked agentos-search/ when present.
+ * Fixture collections are opt-in (Vite DEV or ?fixtures=1) so production
+ * never silently pretends search works when the product package is broken.
  */
 import "../../src/register.js";
 import type { McSiteSearch } from "../../src/ui/mc-site-search/element.js";
@@ -59,7 +60,7 @@ const fixtureItems: SearchItem[] = [
     collectionId: "docs",
     kind: "page",
     label: "searchd protocol",
-    secondary: "Reference — serviceCall ops configure through cancel",
+    secondary: "Reference — serviceCall ops configure, crawl, query, refresh",
     href: "/docs/reference/searchd-protocol.html",
     meta: "/docs/reference/searchd-protocol.html",
   },
@@ -168,10 +169,16 @@ function ensureSearchElement(): McSiteSearch {
 const element = ensureSearchElement();
 
 const releaseManifest = new URL("/agentos-search/agentos-search.manifest.json", location.href);
+// Vite injects import.meta.env.DEV; keep a structural check so docs tsc (no vite/client types) passes.
+const viteDev =
+  typeof import.meta !== "undefined" &&
+  Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+const allowFixtures =
+  viteDev || new URLSearchParams(location.search).get("fixtures") === "1";
 void (async () => {
   try {
     const probe = await fetch(releaseManifest, { method: "HEAD", cache: "no-cache" });
-    if (!probe.ok) throw new Error("no release package");
+    if (!probe.ok) throw new Error(`no release package (HTTP ${probe.status})`);
     globalThis.AgentOSSearch = {
       assetBase: new URL("/agentos-search/", location.href),
       manifestUrl: releaseManifest,
@@ -204,11 +211,21 @@ void (async () => {
     };
     await bootstrapSearchExperience(globalThis.AgentOSSearch);
     console.info("[search-experience docs] product path ready");
-  } catch {
-    element.statusMessage = "";
-    element.phase = "docs";
-    element.collections = fixtureCollections();
-    console.info("[search-experience docs] fixture collections (release assets not mounted)");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[search-experience docs] product bootstrap failed", error);
+    if (allowFixtures) {
+      element.statusMessage = "";
+      element.phase = "docs";
+      element.collections = fixtureCollections();
+      console.info(
+        "[search-experience docs] fixture collections (dev/?fixtures=1 only):",
+        message,
+      );
+      return;
+    }
+    element.phase = "error";
+    element.statusMessage = `Search unavailable: ${message}`;
   }
 })();
 

@@ -37,12 +37,6 @@ export function configureEmbedTool(
   if (factory) state.factory = factory;
 }
 
-export function setEmbedderFactory(state: EmbedToolState, factory: EmbedderFactory): void {
-  state.factory = factory;
-  state.embedder = null;
-  state.loading = null;
-}
-
 async function ensureEmbedder(state: EmbedToolState): Promise<MixedbreadEmbedder> {
   if (state.embedder) return state.embedder;
   if (!state.options) throw new Error("embed tool is not configured");

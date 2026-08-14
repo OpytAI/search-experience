@@ -44,17 +44,16 @@
         <table class="ref-table">
           <thead><tr><th>op</th><th>Role</th></tr></thead>
           <tbody>
-            <tr><td><code>configure</code></td><td>Collections, schema SQL, model fingerprint, compatibility key, page origin, optional resume</td></tr>
+            <tr><td><code>configure</code></td><td>Collections, schema SQL, model fingerprint, compatibility key, page origin, optional resume. Applies schema fail-closed (FTS/VANN/triggers required). Fixed index paths only.</td></tr>
             <tr><td><code>status</code></td><td>Ready / phase / counts / semantic claim</td></tr>
-            <tr><td><code>crawl_step</code></td><td>Queue work; host fetch+extract; writes active or candidate</td></tr>
+            <tr><td><code>crawl_step</code></td><td>Queue work; host fetch+extract; writes active or candidate. Auto-promotes a validated candidate.</td></tr>
             <tr><td><code>embed_step</code></td><td>Batch embed via host; VANN insert</td></tr>
             <tr><td><code>query</code></td><td>Always reads active index; FTS + optional vector + RRF</td></tr>
-            <tr><td><code>refresh</code></td><td>Start candidate generation</td></tr>
-            <tr><td><code>checkpoint</code></td><td>Persistence markers (lexical | semantic | idle)</td></tr>
-            <tr><td><code>promote</code></td><td>Candidate → active when valid</td></tr>
-            <tr><td><code>cancel</code></td><td>Cancel in-flight work</td></tr>
+            <tr><td><code>refresh</code></td><td>Start candidate generation (schema postconditions before arming writeCandidate)</td></tr>
+            <tr><td><code>checkpoint</code></td><td>Readiness status snapshot only — not a SQLite WAL checkpoint/flush</td></tr>
           </tbody>
         </table>
+        <p>Candidate promotion is internal to <code>crawl_step</code>. Page-side query cancel lives on the runtime worker protocol, not guest <code>searchd</code>.</p>
 
         <h2>Response envelope</h2>
         <p>Ok: <code>{ v, id, ok: true, op, status?, progress?, hits? }</code>. Err: <code>{ v, id, ok: false, code, error }</code>.</p>

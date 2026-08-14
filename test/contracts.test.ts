@@ -173,7 +173,7 @@ import {
 
 // RRF fusion math oracle (mirrors guest fuse_rrf with k=60, unit weights)
 {
-  const { reciprocalRankFusion } = await import("../src/oracles/rrf.ts");
+  const { reciprocalRankFusion } = await import("./support/rrf.ts");
   const fused = reciprocalRankFusion(
     [
       { id: "lex-only", rank: 1 },

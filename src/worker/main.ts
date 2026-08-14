@@ -52,7 +52,6 @@ import {
   verifiedBytes,
   verifiedText,
   importMcCore,
-  verifyModelAssets,
 } from "./assets.js";
 import { buildDiagnostics } from "./diagnostics.js";
 import { withIndexLock } from "./indexing-lock.js";
@@ -471,12 +470,11 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
     }
   }
 
-  if (manifest.model) {
-    await verifyModelAssets(base, manifest.model);
-  }
-
   // Load hermetic embed factory from the shipped agentos-search-embed.mjs (transformers
   // is statically bundled there — never bare-import npm from the runtime worker).
+  // Model digests are verified in createMixedbreadEmbedder; verified ONNX bytes are
+  // also indexed under Transformers' load path (model/onnx/model_uint8.onnx) so the
+  // executed graph is the hashed file, not a second unverified network path.
   let embedderFactory: import("../host-tools/embed.js").EmbedderFactory | null = null;
   if (manifest.model && manifest.assets.embedder) {
     const embedBytes = await verifiedBytes(base, manifest.assets.embedder, "embedder");
@@ -496,16 +494,12 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
     }
   }
 
+  // package root as assetBase so model id "model" resolves to model/* and
+  // descriptor URLs (model/model.onnx, …) verify against the same base.
   const embedOptions = manifest.model
     ? {
-        assetBase: new URL("model/", base),
+        assetBase: base,
         assets: manifest.model.assets,
-        runtimeModule: manifest.model.assets.runtimeModule
-          ? new URL(manifest.model.assets.runtimeModule.url, base)
-          : undefined,
-        runtimeWasm: manifest.model.assets.runtimeWasm
-          ? new URL(manifest.model.assets.runtimeWasm.url, base)
-          : undefined,
       }
     : null;
 
@@ -565,7 +559,7 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
       message: "Warm snapshot unavailable; cold boot",
     });
   }
-  searchd = new SearchdClient(vm, "serviceCall");
+  searchd = new SearchdClient(vm);
 
   // Strict reattachment: prove serviceCall("searchd", status) works before ready.
   const probeResponse = await callSearchd({
@@ -610,8 +604,7 @@ async function init(message: Extract<PageToRuntimeMessage, { type: "init" }>): P
       modelFingerprint,
       compatibilityKey,
       pageOrigin: message.pageOrigin,
-      refreshAfterMs: message.refreshAfterMs,
-      indexPath: manifest.sqlite.indexPath,
+      // refreshAfterMs is host-timer only; index paths are fixed in guest paths.rs.
       resume,
     },
   });

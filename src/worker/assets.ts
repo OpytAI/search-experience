@@ -1,7 +1,7 @@
 /**
  * Integrity-checked asset loading for the runtime worker.
  */
-import type { AssetDescriptor, SearchExperienceManifest } from "../protocol/manifest.js";
+import type { AssetDescriptor } from "../protocol/manifest.js";
 import type { McCoreModule } from "../host/vm-boot.js";
 
 export async function sha256(bytes: Uint8Array): Promise<string> {
@@ -53,13 +53,3 @@ export async function importMcCore(base: string, descriptor: AssetDescriptor): P
   }
 }
 
-export async function verifyModelAssets(
-  base: string,
-  model: NonNullable<SearchExperienceManifest["model"]>,
-): Promise<void> {
-  await Promise.all(
-    Object.entries(model.assets).map(async ([key, descriptor]) => {
-      await verifiedBytes(base, descriptor, `model.${key}`);
-    }),
-  );
-}
