@@ -313,7 +313,7 @@ bazel build //:release               # bazel-bin/release.tar (CI / integrators)
 
 Long-form documentation (Diátaxis tutorials, how-tos, reference, explanation, plus blog) lives under **`docs/`**. `bazel run //docs:dev` depends on `//:release` and stages `docs/public/agentos-search/` automatically (gitignored). Root README stays install-first; the site is the pedagogical surface.
 
-Bazel’s user root (caches and outputs) lives under **`./bazel-cache`** in this repo (see `.bazelrc`). That path is gitignored. Always run Bazel from the workspace root so it resolves next to `MODULE.bazel`.
+Bazel’s user root and Zig compiler cache belong in ignored `user.bazelrc` as absolute paths on the workspace disk. Do not put those caches under `/tmp` or `~/.cache/bazel`. The tracked `.bazelrc` imports `user.bazelrc` automatically.
 
 ### Layout
 

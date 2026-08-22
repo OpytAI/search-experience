@@ -11,9 +11,9 @@ dist-manifest/
 *.tar
 !**/third_party/**
 
-# Bazel local state, in-repo user root (./bazel-cache), convenience symlinks
+# Bazel local state and convenience symlinks
 /bazel-*
-.bazelrc.user
+user.bazelrc
 # Keep MODULE.bazel.lock in VCS for hermetic bzlmod resolution.
 
 # Editor / OS
