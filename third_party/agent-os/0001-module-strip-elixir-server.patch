@@ -1,65 +1,353 @@
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -386,62 +386,3 @@
- # raw //server implementation targets are target_compatible_with the erlang
- # constraint, so a plain `bazel build //...` SKIPS them. Elixir server containerization is not yet
- # wired; the rules_oci dependency above currently serves the browser runner image only.
--# ---------------------------------------------------------------------------
--bazel_dep(name = "rules_erlang", version = "3.16.0")
--archive_override(
--    module_name = "rules_erlang",
--    integrity = "sha256-Gg1A/QyTHsHarL0EAOLhe2nTHlcnVngJLBZukcGvaOw=",
--    patch_strip = 1,
--    # B3 patch-in-place: make the source-built OTP target public so discord/rules_elixir's
--    # elixir_build can reference it cross-repo (the integration gap between the two pinned forks).
--    patches = [
--        "//third_party/rules_erlang:patches/0001-erlang_config-otp-public-visibility.patch",
--        "//third_party/rules_erlang:patches/0002-quiet-install-lock-contention.patch",
--    ],
--    strip_prefix = "rules_erlang-b4b01911b99944fa0c9efb66bf3d9030ee784fa9/",
--    url = "https://github.com/discord/rules_erlang/archive/b4b01911b99944fa0c9efb66bf3d9030ee784fa9.tar.gz",
--)
+@@ -13,26 +13,333 @@
+     version = "0.0.0",
+ )
+ 
+-include("//bazel:zig.MODULE.bazel")
+-include("//bazel:rust.MODULE.bazel")
+-include("//bazel:js.MODULE.bazel")
+-include("//bazel:lint.MODULE.bazel")
+-include("//third_party/luauc:luauc.MODULE.bazel")
+-include("//third_party/sqlite:sqlite.MODULE.bazel")
+-include("//third_party/twigz:twigz.MODULE.bazel")
+-include("//third_party/binaryen:binaryen.MODULE.bazel")
+-include("//third_party/browser:browser.MODULE.bazel")
+-include("//third_party/firecracker:firecracker.MODULE.bazel")
+-include("//bazel:erlang.MODULE.bazel")
 -
--bazel_dep(name = "rules_elixir", version = "1.1.0")
--git_override(
--    module_name = "rules_elixir",
--    commit = "c8b30e5cf2b88566e6024ec44f42b5c33edb9002",
--    patch_strip = 1,
--    # B3 patch-in-place: forward target_compatible_with through the mix_library macro (it drops
--    # it otherwise), so a bare `bazel build //...` SKIPS the Elixir package as incompatible and
--    # only the scoped transition wrappers configure it. Without this the macro-internal
--    # *_compile targets fail toolchain resolution under the default platform.
--    patches = [
--        "//third_party/rules_elixir:patches/0001-forward-target-compatible-with.patch",
--        "//third_party/rules_elixir:patches/0002-elixir-app-compatibility.patch",
--    ],
--    remote = "https://github.com/discord/rules_elixir.git",
--)
--
--erlang_config = use_extension("@rules_erlang//bzlmod:extensions.bzl", "erlang_config")
--erlang_config.internal_erlang_from_github_release(
--    name = "26_2",
--    extra_make_opts = ["-j 4"],
--    sha256 = "de155c4ad9baab2b9e6c96dbd03bf955575a04dd6feee9c08758beb28484c9f6",
--    version = "26.2.5",
--)
--use_repo(erlang_config, "erlang_config")
--
--# The in-repo examples/internal-elixir is STALE: the current extension makes `otp` mandatory
--# (it links the Elixir build to the named OTP install), with `erlang_version` for the
--# combined platform constraints.
--elixir_config = use_extension("@rules_elixir//bzlmod:extensions.bzl", "elixir_config")
--elixir_config.internal_elixir_from_github_release(
--    name = "1_16",
--    erlang_version = "26.2.5",
--    otp = "26_2",
--    sha256 = "b9e845458e03d62a24325b8424069e401cc7468e21143ecbca5514724d7cbaa0",
--    version = "1.16.1",
--)
--use_repo(elixir_config, "elixir_config")
--
--register_toolchains(
+-# Full registration set (Zig + in-repo wasm targets + OTP/Elixir). rules_rust 0.70
++# --- inlined from bazel/zig.MODULE.bazel ---
++# Zig toolchain, C headers, skylib, and the Gitz / utilz / shcore modules.
++#
++# Zig is the hermetic compiler for the shell, coreutils, sysroot, guest glue, and
++# C/C++ (sqlite via zig cc; Luau via the luauc module). rules_cc is only for
++# cc_import/cc_library header targets. skylib is build_test / diff_test / write_file.
++
++bazel_dep(name = "platforms", version = "1.1.0")
++bazel_dep(name = "rules_zig", version = "0.16.0")
++bazel_dep(name = "rules_cc", version = "0.2.18")
++bazel_dep(name = "bazel_skylib", version = "1.9.0")
++
++# Zig 0.16.0 toolchain, pinned via the local sha-locked index.
++zig = use_extension("@rules_zig//zig:extensions.bzl", "zig")
++zig.index(file = "//:zig_index.json")
++zig.toolchain(zig_version = "0.16.0")
++use_repo(zig, "zig_toolchains")
++
++# Cross-compile-to-wasm zig toolchains, registered in the root MODULE.bazel:
++# //platforms:wasm32_freestanding (the Rust kernel + pure guests, no libc) and
++# //platforms:wasm32_wasi (C/C++ domain tools whose runtime needs zig's
++# wasi-libc/libc++; //memcontainers/wasi-adapter then rewrites the syscall
++# imports to mc).
++
++# Gitz — pure-Zig Git library (go-git v5.19.2 port). Commit-locked 0.0.0
++# archive_override: bump commit + integrity together.
++GITZ_COMMIT = "fdf9124c2aab83b6c3297be4bae8045ada7661f8"
++GITZ_INTEGRITY = "sha256-maNtI/Q1Vt7LeW1d2bltDvnBUy/WQVX9ZOEXj33TOuc="
++
++bazel_dep(name = "gitz", version = "0.0.0")
++archive_override(
++    module_name = "gitz",
++    integrity = GITZ_INTEGRITY,
++    strip_prefix = "gitz-" + GITZ_COMMIT,
++    url = "https://github.com/OpytAI/gitz/archive/" + GITZ_COMMIT + ".tar.gz",
++)
++
++# utilz — Unix utilities in Zig. Commit-locked 0.0.0 archive_override:
++# bump commit + strip_prefix + integrity together.
++UTILZ_COMMIT = "eca2dc637a448839f76f67a329650f55a8d07954"
++UTILZ_INTEGRITY = "sha256-hcec1665890F8LgMx8NxugM3U7NsIrUgXEnGcwM4Dvs="
++
++bazel_dep(name = "utilz", version = "0.0.0")
++archive_override(
++    module_name = "utilz",
++    integrity = UTILZ_INTEGRITY,
++    strip_prefix = "utilz-" + UTILZ_COMMIT,
++    url = "https://github.com/OpytAI/utilz/archive/" + UTILZ_COMMIT + ".tar.gz",
++)
++
++# shcore — embed a Unix shell anywhere. Same pin rule as gitz/utilz.
++SHCORE_COMMIT = "2817e8c9eb98ad9bec8f6c8d787ca6cad66cd865"
++SHCORE_INTEGRITY = "sha256-SlDvHw+OXUyNDBqjtzBzXEtpfMZLuYnLcIZgVUEd0TQ="
++
++bazel_dep(name = "shcore", version = "0.0.0")
++archive_override(
++    module_name = "shcore",
++    integrity = SHCORE_INTEGRITY,
++    strip_prefix = "shcore-" + SHCORE_COMMIT,
++    url = "https://github.com/OpytAI/shcore/archive/" + SHCORE_COMMIT + ".tar.gz",
++)
++
++# --- inlined from bazel/rust.MODULE.bazel ---
++# Rust toolchain and isolated crate universes.
++#
++# wasm32-unknown-unknown is the kernel's rustc target (SYSTEMS.md's "freestanding"
++# is the Zig triple); guests compile there too. The host triple stays for the
++# projector and the wasmtime host (native, autodetected). A musl target triple
++# lands when a host binary goes static for distribution — deferred (see
++# hosts/wasmtime/defs.bzl: that needs a libc constraint + a musl C toolchain, not
++# just a triple). wasmtime is built from @host_crates; there is no prebuilt
++# libwasmtime.a to match.
++#
++# rules_rust 0.70 registers @rust_toolchains from this extension. use_repo keeps
++# the repo visible; the root MODULE.bazel does not re-register it.
++
++bazel_dep(name = "rules_rust", version = "0.70.0")
++
++rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
++rust.toolchain(
++    edition = "2021",
++    extra_target_triples = [
++        "wasm32-unknown-unknown",
++        "wasm32-wasip1",
++    ],
++)
++use_repo(rust, "rust_toolchains")
++
++# Isolated crate_universe locks. A single Cargo resolution feature-unifies common
++# deps and turns on std features (e.g. bitflags/std via wasmtime) that drag std
++# lang items into the no_std kernel. Each world is its own source of truth. The
++# `abi` role is the generated //memcontainers/contracts:*_rust bindings, not a
++# crate.
++crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
++crate.from_cargo(
++    name = "crates",
++    cargo_lockfile = "//memcontainers/kernel/rust:Cargo.lock",
++    manifests = ["//memcontainers/kernel/rust:Cargo.toml"],
++)
++crate.from_cargo(
++    name = "host_crates",
++    cargo_lockfile = "//memcontainers/hosts/wasmtime:Cargo.lock",
++    manifests = ["//memcontainers/hosts/wasmtime:Cargo.toml"],
++)
++
++# typst (std, wasm32-wasip1): typst + typst-pdf + typst-assets + comemo/krilla/ICU
++# (~300 crates). Own lock so that graph never feature-unifies with kernel or host.
++# The wasm engine links typst/typst-pdf/time/serde[_json]; the host font extractor
++# (//memcontainers/programs/typst/fonts) links typst-assets.
++crate.from_cargo(
++    name = "typst_crates",
++    cargo_lockfile = "//memcontainers/programs/typst/glue:Cargo.lock",
++    manifests = ["//memcontainers/programs/typst/glue:Cargo.toml"],
++)
++
++# Adapter parsers (std, wasm32-wasip1): serde-based parsers for external API
++# description formats that feed /svc/adapters. Kept apart so OpenAPI/YAML/schema
++# deps never feature-unify with domain engines or no_std tools.
++crate.from_cargo(
++    name = "parse_crates",
++    cargo_lockfile = "//memcontainers/lib/parse:Cargo.lock",
++    manifests = ["//memcontainers/lib/parse:Cargo.toml"],
++)
++
++# NIF (std, native): rustler for the BEAM host shim
++# (//memcontainers/hosts/wasmtime/nif). Own lock so rustler never feature-unifies
++# with the host's wasmtime graph. The `host` crate it wraps is a Bazel dep
++# (//memcontainers/hosts/wasmtime:lib), not a crate_universe entry.
++crate.from_cargo(
++    name = "nif_crates",
++    cargo_lockfile = "//memcontainers/hosts/wasmtime/nif:Cargo.lock",
++    manifests = ["//memcontainers/hosts/wasmtime/nif:Cargo.toml"],
++)
++use_repo(crate, "crates", "host_crates", "nif_crates", "parse_crates", "typst_crates")
++
++# --- inlined from bazel/js.MODULE.bazel ---
++# JS/TS — the local Node.js/Bun + browser host family and the @mc/* SDK
++# (hosts/js, sdk-js/). The JS host loads the same kernel.wasm the wasmtime host
++# does and consumes the generated TS contract descriptors (env_ts/ctl_ts), so a
++# contract change cannot silently desync it (B2). pnpm-managed npm deps; hermetic
++# node + tsc.
++
++bazel_dep(name = "aspect_rules_js", version = "3.2.2")
++bazel_dep(name = "aspect_rules_ts", version = "3.8.11")
++
++npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
++npm.npm_translate_lock(
++    name = "npm",
++    pnpm_lock = "//:pnpm-lock.yaml",
++    verify_node_modules_ignored = "//:.bazelignore",
++)
++use_repo(npm, "npm")
++
++pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
++use_repo(pnpm, "pnpm")
++
++# typescript for ts_project, version pinned from the root package.json.
++rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
++rules_ts_ext.deps(ts_version_from = "//:package.json")
++use_repo(rules_ts_ext, "npm_typescript")
++
++# --- inlined from bazel/lint.MODULE.bazel ---
++# Format / lint / contract-drift host tools.
++#
++# aspect_bazel_lib — write_source_files + diff_test for the contract drift gate (B2).
++# aspect_rules_lint + buildifier_prebuilt + rules_multirun — //bazel/tools format_multirun.
++
++bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
++bazel_dep(name = "aspect_rules_lint", version = "2.7.2")
++bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.2")
++bazel_dep(name = "rules_multirun", version = "0.11.0")
++
++# --- inlined from third_party/luauc/luauc.MODULE.bazel ---
++# Luauc — reusable Luau compiler/runtime toolchain. AgentOS consumes only its
++# public component and runtime-profile contracts; AgentOS owns the mc provider
++# adapter, commands, packaging, and E2E.
++#
++# Commit-locked 0.0.0 archive_override: bump commit + strip_prefix + integrity
++# together.
++
++bazel_dep(name = "luauc", version = "0.0.0")
++archive_override(
++    module_name = "luauc",
++    integrity = "sha256-So4Rk+jLU8DXlrKWEwcs/3oTsGOMsMM3jkeKzkQ5ozU=",
++    strip_prefix = "luauc-7bb2b5c8a25d3fd189bfba04f7ae832cbece8836",
++    url = "https://github.com/OpytAI/luauc/archive/7bb2b5c8a25d3fd189bfba04f7ae832cbece8836.tar.gz",
++)
++
++# --- inlined from third_party/sqlite/sqlite.MODULE.bazel ---
++# sqlite — the SQLite 3.51.0 amalgamation fetched from sqlite.org (B3: fetch
++# upstream, never vendor). 3.51.0 ships native SQLITE_WASI support (the
++# unix-dotfile VFS over WASI fds), so the wasm32-wasi + mc build needs no core
++# patches — only the compile defines in
++# memcontainers/programs/sqlite/glue/BUILD.bazel. The Zig glue @cImports
++# sqlite3.h and links sqlite3.c as a csrc (see BUILD.sqlite.bazel).
++
++http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
++
++http_archive(
++    name = "sqlite",
++    build_file = "//third_party/sqlite:BUILD.sqlite.bazel",
++    sha256 = "1caf7116f2910600d04473ad69d37ec538fa62fa36adccd37b5e0e43647c98be",
++    strip_prefix = "sqlite-amalgamation-3510000",
++    type = "zip",
++    urls = ["https://sqlite.org/2025/sqlite-amalgamation-3510000.zip"],
++)
++
++# --- inlined from third_party/twigz/twigz.MODULE.bazel ---
++# Twigz — grammar compiler, packer, and Tree-sitter runtime. AgentOS consumes
++# public grammars, pack C, and Tree-sitter filegroups; AgentOS owns the
++# registry projector, /bin/syntax service, and e2e.
++#
++# Commit-locked 0.0.0 archive_override: bump commit + strip_prefix + integrity
++# together.
++
++TWIGZ_COMMIT = "767d8483bd238546bb548036b1b227a390c831db"
++TWIGZ_INTEGRITY = "sha256-R9CpdQM4/J0BEYCOD02EkDs0rrEUp+L7bZoxEoBjkmY="
++
++bazel_dep(name = "twigz", version = "0.0.0")
++archive_override(
++    module_name = "twigz",
++    integrity = TWIGZ_INTEGRITY,
++    strip_prefix = "twigz-" + TWIGZ_COMMIT,
++    url = "https://github.com/OpytAI/twigz/archive/" + TWIGZ_COMMIT + ".tar.gz",
++)
++
++# --- inlined from third_party/binaryen/binaryen.MODULE.bazel ---
++# Binaryen 130's portable Node distribution: wasm-opt itself compiled to
++# WebAssembly plus its small Node launcher. HOST build tool, never guest/image
++# content. The portable bundle is 2 MiB compressed and produces byte-identical
++# output to Binaryen's 102 MiB x86_64 native distribution, while running under
++# the hermetic rules_js Node toolchain on every supported host (B3/B4).
++
++
++http_archive(
++    name = "binaryen",
++    build_file = "//third_party/binaryen:BUILD.binaryen.bazel",
++    sha256 = "2581456ca8fa2f0e6512d17c8dce34ce8f133211d427afe0bec242ceff73ab77",
++    strip_prefix = "binaryen-version_130",
++    urls = ["https://github.com/WebAssembly/binaryen/releases/download/version_130/binaryen-version_130-node.tar.gz"],
++)
++
++# --- inlined from third_party/browser/browser.MODULE.bazel ---
++# Firecracker browser-runner image inputs (B4).
++#
++# rules_pkg is also the deterministic tar for memcontainers/images and the
++# firecracker bundle; one home. rules_oci serves this browser runner image only.
++# @umoci unpacks the OCI layout into a rootfs for mkinitramfs (host build tool).
++
++bazel_dep(name = "rules_pkg", version = "1.0.1")
++bazel_dep(name = "rules_oci", version = "2.3.0")
++
++oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
++oci.pull(
++    name = "headless_shell",
++    digest = "sha256:7f8ec4782f1b138c30900e65ae53795d5966fbf52168b8fc062843db3e6d5be5",
++    image = "docker.io/chromedp/headless-shell",
++    platforms = ["linux/amd64"],
++)
++use_repo(oci, "headless_shell", "headless_shell_linux_amd64")
++
++
++http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
++
++# Host build tool: umoci unpack for //server/sidecars/firecracker/browser:initramfs.
++http_file(
++    name = "umoci",
++    downloaded_file_path = "umoci",
++    executable = True,
++    sha256 = "b51c267ec394499e42c6fde47f240b7b7dba57ea49df0b5acd304378b82a3b71",
++    urls = ["https://github.com/opencontainers/umoci/releases/download/v0.6.0/umoci.linux.amd64"],
++)
++
++# Static musl BusyBox 1.35.0 packed at /usr/bin/busybox by
++# //server/sidecars/firecracker/browser:runtime_layer. init.sh uses it for `ip`
++# (the headless-shell base has no iproute2) plus `rm`/`sleep`. Same class as
++# @bun_browser and @headless_shell — a runner-rootfs binary, not AgentOS userland.
++http_file(
++    name = "busybox_browser",
++    downloaded_file_path = "busybox",
++    executable = True,
++    sha256 = "6e123e7f3202a8c1e9b1f94d8941580a25135382b99e8d3e34fb858bba311348",
++    urls = ["https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox"],
++)
++
++# The headless-shell base has no JavaScript runtime. Bun is the browser control
++# adapter; if a future complete base already supplies a suitable runtime, retain it.
++http_archive(
++    name = "bun_browser",
++    build_file = "//third_party/browser:BUILD.bun.bazel",
++    sha256 = "a063908ae08b7852ca10939bbdc6ceed3ddabce8fb9402dce83d65d73b36e6c7",
++    strip_prefix = "bun-linux-x64-baseline",
++    type = "zip",
++    urls = ["https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-linux-x64-baseline.zip"],
++)
++
++# --- inlined from third_party/firecracker/firecracker.MODULE.bazel ---
++# Firecracker runner inputs. Deployment artifacts, not source dependencies;
++# Bazel-addressed and digest-pinned so the reference runner and its KVM proof
++# cannot pick up host-installed versions (B4). The architecture-specific bundle
++# is separate from the ordinary AgentOS package.
++
++
++
++http_archive(
++    name = "firecracker",
++    build_file = "//third_party/firecracker:BUILD.firecracker.bazel",
++    sha256 = "d4a32ab2322d887ca1bc4a4e7afa9cc35393e6362dfc2b3becb389d362e4275a",
++    strip_prefix = "release-v1.15.1-x86_64",
++    urls = ["https://github.com/firecracker-microvm/firecracker/releases/download/v1.15.1/firecracker-v1.15.1-x86_64.tgz"],
++)
++
++http_file(
++    name = "firecracker_kernel",
++    downloaded_file_path = "vmlinux-6.1.155",
++    executable = False,
++    sha256 = "e20e46d0c36c55c0d1014eb20576171b3f3d922260d9f792017aeff53af3d4f2",
++    urls = ["https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.15/x86_64/vmlinux-6.1.155"],
++)
++
++# Elixir/server stripped — not needed for guest wasm / searchd.
++
++# Full registration set (Zig + in-repo wasm targets). rules_rust 0.70
+ # registers @rust_toolchains from the rust extension; do not add it here.
+ register_toolchains(
+     "@rules_zig//zig/target:all",
+     "@zig_toolchains//:all",
+     "//platforms:wasm32_freestanding_zig_toolchain",
+     "//platforms:wasm32_wasi_zig_toolchain",
 -    "@erlang_config//26_2:toolchain_major",
 -    "@erlang_config//26_2:toolchain_major_minor",
 -    "@elixir_config//1_16:toolchain",
 -)
++)

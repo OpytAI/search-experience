@@ -20,7 +20,7 @@
     <a href="./LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
     <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-informational">
     <img alt="Runtime: Browser" src="https://img.shields.io/badge/runtime-Browser-654ff0">
-    <a href="https://github.com/NarendraPatwardhan/agent-os"><img alt="Built on AgentOS" src="https://img.shields.io/badge/built%20on-AgentOS-f5c542"></a>
+    <a href="https://github.com/OpytAI/agent-os"><img alt="Built on AgentOS" src="https://img.shields.io/badge/built%20on-AgentOS-f5c542"></a>
   </p>
 
   <p>
@@ -343,7 +343,7 @@ Root `MODULE.bazel` pins AgentOS with `bazel_dep` + `git_override` (commit SHA i
 
 bzlmod only materializes some extension repos for the **root** module. AgentOS expects `@zig_sdk` from `hermetic_cc_toolchain`, so this product re-hosts that extension at root and registers the Zig toolchains.
 
-Patches under `third_party/agent-os/` keep the nested module usable for this product: strip Elixir/server deps we do not need, fix main-repo-relative loads for tree-sitter, fix Luau include paths under an external root, and cap the sqlite Wasm stack at 1 MiB so guest memory stays on budget.
+Patches under `third_party/agent-os/` keep the nested module usable for this product: flatten AgentOS `MODULE.bazel` `include()` directives (nested modules cannot use them) and drop the OTP/Elixir server lane. Tree-sitter, Luau include paths, and the sqlite 1 MiB Wasm stack are upstream as of this pin. Root `MODULE.bazel` re-hosts AgentOS's `archive_override` pins for gitz, utilz, shcore, twigz, and luauc because those overrides are root-only.
 
 To bump AgentOS: change the `commit` in `git_override`, confirm patches still apply, then run `bazel test //:check` and `bazel build //:release`. Expect snapshot compatibility keys to change so visitors cold-boot.
 

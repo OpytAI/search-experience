@@ -39,5 +39,3 @@ Guest durable state lives under **`/var/searchd/`**. See
 
 Stock AgentOS `atlas` includes loom (`/bin/luau`). This product does not need Luau
 in the image; search-atlas layers sqlite + searchd on **base** (no coreutils).
-Nested Luau C++ under `@agent-os` can still hit include-path issues if built; see
-product patch `third_party/agent-os/0003-luau-include-external-root.patch`.
