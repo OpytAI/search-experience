@@ -7,13 +7,9 @@ common --incompatible_strict_action_env
 common --lockfile_mode=update
 common --registry=https://bcr.bazel.build/
 
-# Match AgentOS guest/tooling needs (Zig caches, hermetic cc)
-build --sandbox_add_mount_pair=/tmp
-build --sandbox_add_mount_pair=/home
-
 test --test_output=errors
 
-# Match AgentOS guest/tooling needs for nested @agent-os C/C++/Zig
+# Nested @agent-os C/C++ is compiled by zig cc.
 common --copt=-w
 common --host_copt=-w
 build --copt=-fno-sanitize=undefined --host_copt=-fno-sanitize=undefined
