@@ -4,10 +4,9 @@ AgentOS is a git-pinned Bazel module. Guest compilation (searchd, search-atlas)
 and runtime artifacts (kernel, mc-core, catalog-compiler) come from @agent-os//…
 labels built from that pin — not from prebuilt release downloads.
 
-bzlmod only applies overrides from the root module. AgentOS assumes it is root
-for some extensions (elixir, hermetic_cc @zig_sdk). This MODULE re-hosts
-hermetic_cc at root and patches AgentOS to drop the Elixir/server block (not
-needed for guest wasm / searchd).
+bzlmod only applies overrides from the root module. Nested modules cannot use
+include(), so a patch flattens AgentOS MODULE includes and drops the OTP/Elixir
+server lane (not needed for guest wasm / searchd).
 """
 
 module(name = "search-experience", version = "0.1.0")
@@ -24,7 +23,7 @@ bazel_dep(name = "agent-os", version = "0.0.0")
 
 git_override(
     module_name = "agent-os",
-    commit = "fc32ef642edf65357d62a5bc6796f04bd2d3861f",
+    commit = "f5bb229932f699d50c8d10fbfd2cb1508d9ab80d",
     patch_strip = 1,
     patches = [
         # Nested modules cannot use include(). Flatten AgentOS MODULE includes
@@ -80,19 +79,6 @@ archive_override(
     integrity = "sha256-So4Rk+jLU8DXlrKWEwcs/3oTsGOMsMM3jkeKzkQ5ozU=",
     strip_prefix = "luauc-" + LUAUC_COMMIT,
     url = "https://github.com/OpytAI/luauc/archive/" + LUAUC_COMMIT + ".tar.gz",
-)
-
-# hermetic_cc only materializes @zig_sdk when the **root** module uses the extension
-# (see hermetic_cc_toolchain toolchain/ext.bzl). AgentOS imports zig_sdk for
-# git-engine; root must instantiate the extension.
-bazel_dep(name = "hermetic_cc_toolchain", version = "4.2.0")
-
-hermetic_cc = use_extension("@hermetic_cc_toolchain//toolchain:ext.bzl", "toolchains")
-use_repo(hermetic_cc, "zig_sdk")
-
-register_toolchains(
-    "@zig_sdk//toolchain/...",
-    "@zig_sdk//libc_aware/toolchain/...",
 )
 
 # Product JS toolchain (product-local rules_bun only)

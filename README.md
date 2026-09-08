@@ -319,7 +319,7 @@ Bazel’s user root and Zig compiler cache belong in ignored `user.bazelrc` as a
 
 ```text
 search-experience/
-├── MODULE.bazel              # agent-os pin, hermetic_cc, rules_bun, model fetches
+├── MODULE.bazel              # agent-os pin, rules_bun, model fetches
 ├── BUILD.bazel               # //:check, //:release, bundles, manifest
 ├── src/
 │   ├── host/                 # bootstrap, SearchdClient, VM boot
@@ -341,9 +341,7 @@ search-experience/
 
 Root `MODULE.bazel` pins AgentOS with `bazel_dep` + `git_override` (commit SHA is the source of truth). Product targets use `@agent-os//…` labels for the kernel, mc-core bundle, catalog compiler, base image, sqlite guest glue, and guest macros (`mc_rust_program`, `mc_service_layer`). There is **no** default path that downloads those from GitHub releases; they are built from the pin.
 
-bzlmod only materializes some extension repos for the **root** module. AgentOS expects `@zig_sdk` from `hermetic_cc_toolchain`, so this product re-hosts that extension at root and registers the Zig toolchains.
-
-Patches under `third_party/agent-os/` keep the nested module usable for this product: flatten AgentOS `MODULE.bazel` `include()` directives (nested modules cannot use them) and drop the OTP/Elixir server lane. Tree-sitter, Luau include paths, and the sqlite 1 MiB Wasm stack are upstream as of this pin. Root `MODULE.bazel` re-hosts AgentOS's `archive_override` pins for gitz, utilz, shcore, twigz, and luauc because those overrides are root-only.
+Patches under `third_party/agent-os/` keep the nested module usable for this product: flatten AgentOS `MODULE.bazel` `include()` directives (nested modules cannot use them) and drop the OTP/Elixir server lane. Tree-sitter, Luau include paths, and the sqlite 1 MiB Wasm stack are upstream as of this pin. Root `MODULE.bazel` re-hosts AgentOS's `archive_override` pins for gitz, utilz, shcore, twigz, and luauc because those overrides are root-only. AgentOS Zig is `rules_zig`; this product does not re-host `hermetic_cc`.
 
 To bump AgentOS: change the `commit` in `git_override`, confirm patches still apply, then run `bazel test //:check` and `bazel build //:release`. Expect snapshot compatibility keys to change so visitors cold-boot.
 
@@ -426,5 +424,5 @@ Do not reintroduce a Luau production transport, prebuilt AgentOS asset pins as t
 1. After `package.json` changes, run `bazel run //tools/deps:update_lock`.
 2. Gate every change with `bazel test //:check`.
 3. Guest, protocol, or schema changes need a rebuild of searchd and search-atlas; expect snapshot key churn.
-4. AgentOS bumps need a patch re-check and a root `hermetic_cc` sanity pass.
+4. AgentOS bumps need a patch re-check.
 5. Packaging work: build `//:release`, unpack into `docs/public`, run `//docs:dev`, and use the browser E2E path when the change touches boot, crawl, or restore.
